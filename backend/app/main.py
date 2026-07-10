@@ -1,7 +1,19 @@
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-app = FastAPI(title="dechord")
+from app.persistence import init_library
+
+
+@asynccontextmanager
+async def lifespan(_: FastAPI):
+    # Idempotent: creates library/ and the media table on first run, no-op after.
+    init_library()
+    yield
+
+
+app = FastAPI(title="dechord", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

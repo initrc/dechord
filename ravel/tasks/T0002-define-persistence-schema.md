@@ -1,7 +1,7 @@
 ---
 id: T0002
 title: Define persistence schema and library storage
-status: new
+status: done
 dependencies:
   - T0001
 ---
@@ -27,3 +27,21 @@ dependencies:
 - Define `status` enum in Python: `queued | recognizing | done | failed`. Match the strings used by `GET /jobs/{id}` (design-v1.md).
 - Migrations are trivial: a single `CREATE TABLE IF NOT EXISTS` is sufficient for v1. Evolve the approach only when columns change.
 - Reference: `ravel/docs/design-v1.md` Media library section.
+
+# Results
+
+- Reversed T0001's "do not restructure into `app/`" guidance now that the backend
+  is growing past one file. Source lives in `backend/app/` (`app/main.py`,
+  `app/persistence.py`, `app/__init__.py`); tests under `backend/tests/`.
+  T0001's flat layout was right for a one-file skeleton; revisit once more logic
+  lands. This supersedes the relevant T0001 note.
+- Tests use pytest (added to the `dev` dependency group), not a standalone smoke
+  script — `uv run pytest` (or `make test`). `[tool.pytest.ini_options]` sets
+  `pythonpath = ["."]` so `tests/` can `from app.persistence import ...`.
+- Dev server switched from `uv run uvicorn app.main:app --reload` to
+  `uv run fastapi dev`. With `app/main.py` present, the FastAPI CLI
+  auto-discovers the package and the `app` object; the explicit uvicorn form is
+  kept in the README as a fallback. `fastapi dev` implies `--reload` and binds
+  127.0.0.1, so the Makefile `dev` target is just `uv run fastapi dev`.
+- Runtime `library/` directory is created under `backend/` on startup (cwd is
+  `backend/`); `.gitignore` ignores `/backend/library/`.

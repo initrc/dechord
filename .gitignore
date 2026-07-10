@@ -1,3 +1,6 @@
 
 .ravel/
 .worktrees/
+
+# Runtime media library (created by the backend on startup)
+/backend/library/

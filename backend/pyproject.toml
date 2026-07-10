@@ -19,9 +19,14 @@ madmom = { git = "https://github.com/CPJKU/madmom.git" }
 
 [dependency-groups]
 dev = [
+    "pytest>=9.1.1",
     "ruff>=0.6",
 ]
 
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+
+[tool.pytest.ini_options]
+# Let tests import the `app` package without installing the project.
+pythonpath = ["."]
