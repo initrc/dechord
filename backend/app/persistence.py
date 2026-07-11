@@ -136,6 +136,26 @@ def get_media(conn: sqlite3.Connection, media_id: str) -> MediaRow | None:
     return _row_from_record(record) if record else None
 
 
+def get_media_by_sha256(conn: sqlite3.Connection, sha256: str) -> MediaRow | None:
+    """Existing record for content hash, or None. Powers upload dedup."""
+    cur = conn.execute("SELECT * FROM media WHERE sha256 = ?", (sha256,))
+    record = cur.fetchone()
+    return _row_from_record(record) if record else None
+
+
+def update_media_status(
+    conn: sqlite3.Connection, media_id: str, status: MediaStatus
+) -> MediaRow:
+    conn.execute(
+        "UPDATE media SET status = ? WHERE id = ?", (status.value, media_id)
+    )
+    conn.commit()
+    row = get_media(conn, media_id)
+    if row is None:
+        raise KeyError(media_id)
+    return row
+
+
 def list_media(conn: sqlite3.Connection) -> list[MediaRow]:
     cur = conn.execute("SELECT * FROM media ORDER BY uploaded_at DESC")
     return [_row_from_record(r) for r in cur.fetchall()]
@@ -158,6 +178,11 @@ def write_media_file(
 
 def read_media_file(sha256: str, ext: str, library_dir: Path = LIBRARY_DIR) -> bytes:
     return media_file_path(sha256, ext, library_dir).read_bytes()
+
+
+def source_wav_path(sha256: str, library_dir: Path = LIBRARY_DIR) -> Path:
+    """Normalized mono 44.1 kHz WAV written by the upload stage for recognition."""
+    return library_dir / sha256 / "source.wav"
 
 
 def chords_path(sha256: str, library_dir: Path = LIBRARY_DIR) -> Path:

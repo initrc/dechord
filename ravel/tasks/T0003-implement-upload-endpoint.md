@@ -1,7 +1,7 @@
 ---
 id: T0003
 title: Implement upload endpoint
-status: new
+status: done
 dependencies:
   - T0002
 ---
@@ -30,3 +30,41 @@ dependencies:
 - `ffmpeg` invocation: `ffmpeg -i <input> -ac 1 -ar 44100 <output>.wav`. Stderr from ffmpeg should be captured for diagnostics.
 - Open decision #1 in design-v1.md proposes the size/format limits; confirm before locking.
 - Reference: `ravel/docs/design-v1.md` Backend section, Endpoint surface.
+
+# Results
+
+- Locked open decision #1 at the proposed values: **50 MB max**, formats
+  **`mp3`, `wav`, `flac`, `m4a`** (definitions in `app/uploads.py`).
+- New module `app/uploads.py` owns `ingest_upload()`: extension validation
+  (415), chunked stream + size enforcement (413, aborts at the limit rather
+  than buffering the whole upload), SHA-256 of the bytes, dedup lookup, store
+  original at `library/{sha256}.{ext}`, insert a `queued` row, run
+  `ffmpeg -y -i <in> -ac 1 -ar 44100 <out>.wav` to `library/{sha}/source.wav`
+  with stderr captured into a 500 on failure, then flip the row to `done`.
+- Dedup returns the **existing** id with status **200** (no new row, no new
+  files); a fresh upload returns **201**. Both share one Pydantic response
+  model `MediaIdResponse { id: str }` (in `app/main.py`).
+- `app/persistence.py` gained three small helpers next to the existing CRUD:
+  `get_media_by_sha256`, `update_media_status` (returns the new row), and
+  `source_wav_path(sha)` → `library/{sha}/source.wav` (sits beside
+  `chords_path` → `library/{sha}/chords.json`, which T0005 will write).
+- `app/main.py` adds `POST /media` (multipart field `file`). It maps
+  `UploadError` to `HTTPException` so 413/415 bodies read
+  `{"detail": ...}` like the rest of the API.
+- Tests in `tests/test_uploads.py` synthesize a valid mono WAV with stdlib
+  `wave` (no fixture file on disk) and exercise the happy path (201 + both
+  files exist), byte-identical dedup (200, same id, single row), 413, and 415
+  (both unknown-ext and disallowed-ext). Each test points `persistence` at a
+  tmp library dir via monkeypatch so the repo's `library/` is never touched.
+- Note on the persistence default-arg gotcha: `open_db(db_path=DB_PATH)` and
+  friends bind their defaults at function-definition time, so monkeypatching
+  `persistence.DB_PATH` later does **not** change calls that omit the arg.
+  `ingest_upload` and the tests pass `persistence.DB_PATH` explicitly; future
+  callers that want a non-default location should do the same. Not refactored
+  (surgical scope); flagged here so the next task isn't surprised.
+- Verified end-to-end against a live `fastapi dev` instance: 201 on upload,
+  200 dedup, 413 over the limit, 415 for `.txt`/`.ogg`, and `source.wav`
+  is a real RIFF WAVE mono 44100 Hz file produced by ffmpeg.
+- Status codes: 201 new, 200 dedup, 413 too large, 415 unsupported format,
+  500 if ffmpeg fails. Queueing is intentionally a no-op here per scope;
+  T0005/T0006 replace the immediate `queued → done` flip with real jobs.
