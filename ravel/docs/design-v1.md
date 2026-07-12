@@ -113,4 +113,4 @@ Audio playback uses the Web Audio API on the master track only. No per-stem play
 
 1. Max upload size and accepted formats (propose: 50 MB, `mp3`/`wav`/`flac`/`m4a`).
 2. SQLite schema details — deferred to the first persistence task.
-3. Choose the madmom processor variant — `DeepChromaChordRecognitionProcessor` vs `CRFChordRecognitionProcessor` — both emit maj/min/N; pick by quick benchmark during the first recognizer task.
+3. ~~Choose the madmom processor variant — `DeepChromaChordRecognitionProcessor` vs `CRFChordRecognitionProcessor` — both emit maj/min/N; pick by quick benchmark during the first recognizer task.~~ **Resolved (T0004):** `DeepChromaChordRecognitionProcessor`. See `ravel/docs/recognizer-benchmark.md`.

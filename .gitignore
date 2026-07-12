@@ -4,3 +4,6 @@
 
 # Runtime media library (created by the backend on startup)
 /backend/library/
+
+# Local benchmark test set (audio + hand-labeled annotations); not shipped
+/backend/benchmarks/samples/
