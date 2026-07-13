@@ -1,4 +1,4 @@
-.PHONY: dev sync lint test clean
+.PHONY: dev sync lint typecheck test clean
 
 dev:
 	uv run fastapi dev
@@ -8,6 +8,9 @@ sync:
 
 lint:
 	uv run ruff check .
+
+typecheck:
+	uv run mypy app tests
 
 test:
 	uv run pytest

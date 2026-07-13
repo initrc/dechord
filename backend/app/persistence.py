@@ -156,6 +156,30 @@ def update_media_status(
     return row
 
 
+def set_media_recognition(
+    conn: sqlite3.Connection,
+    media_id: str,
+    status: MediaStatus,
+    *,
+    has_chords: bool,
+) -> MediaRow:
+    """Set both the recognition status and the has_chords flag in one update.
+
+    Used by the chord recognition service: `done` + `has_chords=True` on
+    success, `failed` + `has_chords=False` on exception (the cached
+    `chords.json` is removed alongside, so the flag must not stay stale).
+    """
+    conn.execute(
+        "UPDATE media SET status = ?, has_chords = ? WHERE id = ?",
+        (status.value, int(has_chords), media_id),
+    )
+    conn.commit()
+    row = get_media(conn, media_id)
+    if row is None:
+        raise KeyError(media_id)
+    return row
+
+
 def list_media(conn: sqlite3.Connection) -> list[MediaRow]:
     cur = conn.execute("SELECT * FROM media ORDER BY uploaded_at DESC")
     return [_row_from_record(r) for r in cur.fetchall()]

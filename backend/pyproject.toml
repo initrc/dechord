@@ -19,6 +19,7 @@ madmom = { git = "https://github.com/CPJKU/madmom.git" }
 
 [dependency-groups]
 dev = [
+    "mypy>=2.2",
     "pytest>=9.1.1",
     "ruff>=0.6",
 ]
@@ -26,6 +27,29 @@ dev = [
 [tool.ruff]
 line-length = 100
 target-version = "py313"
+
+[tool.mypy]
+# Target matches ruff (`[tool.ruff].target-version`) and the project's
+# `requires-python`. The library installed under .venv (3.14) is fine — mypy's
+# own version target only governs which stdlib APIs it considers available.
+python_version = "3.13"
+# madmom ships no stubs; numpy has them via numpy itself. Silencing missing
+# imports keeps the type check useful for our own code without dragging in a
+# third-party stub packaging exercise.
+ignore_missing_imports = true
+# Type-check the bodies of unannotated functions too (default is off).
+# Without this, mypy skips untyped test fixtures entirely and misses real
+# shape errors in them.
+check_untyped_defs = true
+
+# The app package is held to a strict bar: every def must be annotated.
+[tool.mypy-app]
+disallow_untyped_defs = true
+
+# Tests default to mypy's own baseline (untyped defs allowed, but their bodies
+# are still type-checked via check_untyped_defs above the default). Tightening
+# tests to disallow_untyped_defs is reasonable future work but is a separate
+# decision from any feature task, since existing tests aren't fully annotated.
 
 [tool.pytest.ini_options]
 # Let tests import the `app` package without installing the project.

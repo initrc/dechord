@@ -7,3 +7,9 @@
 
 # Local benchmark test set (audio + hand-labeled annotations); not shipped
 /backend/benchmarks/samples/
+
+# IntelliJ IDEA project files. Solo project; IDE config is not shared. The
+# `.idea/.gitignore` IntelliJ auto-generates only covers user-specific files
+# (workspace.xml etc.), but we don't want the rest checked in either.
+.idea/
+*.iml
