@@ -39,6 +39,23 @@ CREATE TABLE IF NOT EXISTS media (
 )
 """
 
+# Job table. `stage` is reserved for future siblings (beats, key);
+# v1 has only `chords`. `status`/`progress` mirror the media lifecycle but
+# track the job itself. `error` is populated only on `failed`.
+JOB_SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS job (
+    id          TEXT PRIMARY KEY,
+    media_id    TEXT NOT NULL,
+    stage       TEXT NOT NULL,
+    status      TEXT NOT NULL,
+    progress    INTEGER NOT NULL DEFAULT 0,
+    error       TEXT,
+    created_at  TEXT NOT NULL,
+    updated_at  TEXT NOT NULL,
+    FOREIGN KEY (media_id) REFERENCES media(id)
+)
+"""
+
 
 class MediaStatus(str, Enum):
     """Lifecycle of a media item's chord recognition. Matches `GET /jobs/{id}`."""
@@ -60,9 +77,26 @@ class MediaRow:
     has_chords: bool
 
 
+@dataclass(frozen=True)
+class JobRow:
+    id: str
+    media_id: str
+    stage: str
+    status: str
+    progress: int
+    error: str | None
+    created_at: str
+    updated_at: str
+
+
 def new_media_id() -> str:
     """Short, unique row id. Distinct from `sha256` (which is content addressing)."""
     return "media_" + secrets.token_hex(4)  # 8 hex chars
+
+
+def new_job_id() -> str:
+    """Short, unique job id. Mirrors the `media_` convention."""
+    return "job_" + secrets.token_hex(4)  # 8 hex chars
 
 
 def now_iso() -> str:
@@ -74,11 +108,12 @@ def ensure_library(library_dir: Path = LIBRARY_DIR) -> None:
 
 
 def open_db(db_path: Path = DB_PATH) -> sqlite3.Connection:
-    """Open the index DB and ensure the `media` table exists (idempotent)."""
+    """Open the index DB and ensure the `media` and `job` tables exist (idempotent)."""
     db_path.parent.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(db_path)
     conn.row_factory = sqlite3.Row
     conn.execute(SCHEMA_SQL)
+    conn.execute(JOB_SCHEMA_SQL)
     return conn
 
 
@@ -106,7 +141,7 @@ def insert_media(
     sha256: str,
     original_filename: str,
     duration: float | None = None,
-    status: str | MediaStatus = MediaStatus.queued,
+    status: MediaStatus = MediaStatus.queued,
     has_chords: bool = False,
 ) -> MediaRow:
     """Insert a media row, returning the stored record (generates id + timestamp)."""
@@ -116,7 +151,7 @@ def insert_media(
         original_filename=original_filename,
         uploaded_at=now_iso(),
         duration=duration,
-        status=status.value if isinstance(status, MediaStatus) else status,
+        status=status,
         has_chords=has_chords,
     )
     conn.execute(
@@ -183,6 +218,88 @@ def set_media_recognition(
 def list_media(conn: sqlite3.Connection) -> list[MediaRow]:
     cur = conn.execute("SELECT * FROM media ORDER BY uploaded_at DESC")
     return [_row_from_record(r) for r in cur.fetchall()]
+
+
+# --- job rows ----------------------------------------------------------------
+
+def _job_from_record(record: sqlite3.Row) -> JobRow:
+    return JobRow(
+        id=record["id"],
+        media_id=record["media_id"],
+        stage=record["stage"],
+        status=record["status"],
+        progress=record["progress"],
+        error=record["error"],
+        created_at=record["created_at"],
+        updated_at=record["updated_at"],
+    )
+
+
+def insert_job(
+    conn: sqlite3.Connection,
+    *,
+    media_id: str,
+    stage: str = "chords",
+    progress: int = 0,
+) -> JobRow:
+    """Insert a `queued` job row, returning the stored record (generates id + timestamps)."""
+    ts = now_iso()
+    row = JobRow(
+        id=new_job_id(),
+        media_id=media_id,
+        stage=stage,
+        status=MediaStatus.queued.value,
+        progress=progress,
+        error=None,
+        created_at=ts,
+        updated_at=ts,
+    )
+    conn.execute(
+        "INSERT INTO job "
+        "(id, media_id, stage, status, progress, error, created_at, updated_at) "
+        "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        (row.id, row.media_id, row.stage, row.status, row.progress,
+         row.error, row.created_at, row.updated_at),
+    )
+    conn.commit()
+    return row
+
+
+def get_job(conn: sqlite3.Connection, job_id: str) -> JobRow | None:
+    cur = conn.execute("SELECT * FROM job WHERE id = ?", (job_id,))
+    record = cur.fetchone()
+    return _job_from_record(record) if record else None
+
+
+def update_job(
+    conn: sqlite3.Connection,
+    job_id: str,
+    *,
+    status: MediaStatus | None = None,
+    progress: int | None = None,
+    error: str | None = None,
+) -> JobRow:
+    """Update a subset of job fields and bump `updated_at`. Raises KeyError if missing."""
+    sets: list[str] = []
+    params: list[object] = []
+    if status is not None:
+        sets.append("status = ?")
+        params.append(status.value)
+    if progress is not None:
+        sets.append("progress = ?")
+        params.append(progress)
+    if error is not None:
+        sets.append("error = ?")
+        params.append(error)
+    sets.append("updated_at = ?")
+    params.append(now_iso())
+    params.append(job_id)
+    conn.execute(f"UPDATE job SET {', '.join(sets)} WHERE id = ?", params)
+    conn.commit()
+    row = get_job(conn, job_id)
+    if row is None:
+        raise KeyError(job_id)
+    return row
 
 
 # --- Content-hash addressed file storage -------------------------------------

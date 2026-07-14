@@ -1,16 +1,16 @@
 """Chord recognition service — loads a normalized WAV, runs madmom, writes chords.json.
 
 The chord stage of the pipeline (see `ravel/docs/design-v1.md` — Pipeline). It is
-sync and invoked from a background job (T0006); no HTTP endpoint lives here.
+sync and invoked from a background job; no HTTP endpoint lives here.
 
-Per Open decision #3 (resolved in T0004 / `ravel/docs/recognizer-benchmark.md`)
+Per Open decision #3 (resolved in `ravel/docs/recognizer-benchmark.md`)
 the recognizer is `DeepChromaChordRecognitionProcessor` — a `SequentialProcessor`
 over `DeepChromaProcessor` (deep chroma) and a CRF decoder. The processor's
 models load slowly, so a single instance is built once and reused across calls.
 
 Feed the normalized WAV (`library/{sha256}/source.wav`), not the original upload:
 some formats (e.g. `m4a`) decode via ffmpeg but not via madmom's
-`SignalProcessor` (see T0004's benchmark).
+`SignalProcessor` (see the recognizer benchmark).
 
 madmom returns a numpy structured array with dtype
 `[('start', '<f8'), ('end', '<f8'), ('label', 'O')]` — float64 start/end
@@ -127,7 +127,7 @@ def recognize_chords(
 
     On any exception the media row is set to `failed` / `has_chords=False` and
     any stale `chords.json` is removed; the exception is re-raised so the
-    caller (T0006's job) can capture the message for the job status.
+    caller (the background job) can capture the message for the job status.
     """
     db_path = persistence.DB_PATH if db_path is None else db_path
     library_dir = persistence.LIBRARY_DIR if library_dir is None else library_dir

@@ -53,7 +53,7 @@ def test_media_round_trip(tmp_path):
         assert fetched.sha256 == "a" * 64
         assert fetched.original_filename == "clip.mp3"
         assert fetched.duration == 12.5
-        assert fetched.status == MediaStatus.queued.value
+        assert fetched.status == MediaStatus.queued
         assert fetched.has_chords is False
 
         rows = list_media(conn)

@@ -1,9 +1,9 @@
 """Multipart upload ingestion: validation, content-hash dedup, ffmpeg normalization.
 
 The upload endpoint (`POST /media`) returns as soon as the file is stored and
-normalized. Recognition queueing lands in a later task; for now the media row is
-inserted as `queued` then immediately flipped to `done` so the contract matches
-what downstream work builds on.
+normalized. The media row is inserted as `queued`; queueing the recognition job
+is wired in the endpoint, which creates a `job` row and hands it to
+FastAPI `BackgroundTasks`.
 """
 
 from __future__ import annotations
@@ -117,7 +117,6 @@ async def ingest_upload(
             persistence.media_file_path(sha, ext, library_dir=library_dir),
             persistence.source_wav_path(sha, library_dir=library_dir),
         )
-        row = persistence.update_media_status(conn, row.id, MediaStatus.done)
         return IngestedMedia(row=row, created=True)
     finally:
         conn.close()
