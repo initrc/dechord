@@ -52,6 +52,7 @@ def test_upload_valid_returns_id_and_stores_files(client, tmp_path):
         assert row is not None
         assert row.sha256 and row.sha256 != ""
         assert row.original_filename == "clip.wav"
+        assert row.duration is not None and abs(row.duration - 0.5) < 0.01
         # The background task (fake recognizer) has run to completion by the
         # time TestClient returns, so the media row is `done` with chords.
         assert row.status == "done"

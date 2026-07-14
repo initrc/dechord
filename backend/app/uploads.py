@@ -11,6 +11,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import subprocess
+import wave
 from dataclasses import dataclass
 
 from fastapi import UploadFile
@@ -64,6 +65,11 @@ def _normalize_to_wav(input_path, output_path) -> None:
         raise UploadError(f"ffmpeg normalization failed: {stderr.strip()}", 500)
 
 
+def _wav_duration(wav_path) -> float:
+    with wave.open(str(wav_path), "rb") as w:
+        return w.getnframes() / w.getframerate()
+
+
 async def ingest_upload(
     file: UploadFile,
     *,
@@ -107,15 +113,18 @@ async def ingest_upload(
             return IngestedMedia(row=existing, created=False)
 
         persistence.write_media_file(sha, ext, data, library_dir=library_dir)
+        source_wav = persistence.source_wav_path(sha, library_dir=library_dir)
+        _normalize_to_wav(
+            persistence.media_file_path(sha, ext, library_dir=library_dir),
+            source_wav,
+        )
+        duration = _wav_duration(source_wav)
         row = persistence.insert_media(
             conn,
             sha256=sha,
             original_filename=filename,
+            duration=duration,
             status=MediaStatus.queued,
-        )
-        _normalize_to_wav(
-            persistence.media_file_path(sha, ext, library_dir=library_dir),
-            persistence.source_wav_path(sha, library_dir=library_dir),
         )
         return IngestedMedia(row=row, created=True)
     finally:

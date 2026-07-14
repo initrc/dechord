@@ -1,7 +1,7 @@
 ---
 id: T0007
 title: Implement library read endpoints
-status: new
+status: done
 dependencies:
   - T0003
   - T0005
