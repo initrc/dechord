@@ -1,7 +1,7 @@
 ---
 id: T0008
 title: Bootstrap frontend project
-status: new
+status: done
 dependencies: []
 ---
 
