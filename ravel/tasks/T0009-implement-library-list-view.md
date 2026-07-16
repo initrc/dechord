@@ -1,7 +1,7 @@
 ---
 id: T0009
 title: Implement library list view
-status: new
+status: done
 dependencies:
   - T0007
   - T0008
