@@ -4,7 +4,6 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import BackgroundTasks, FastAPI, File, HTTPException, UploadFile
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel
 
@@ -22,14 +21,6 @@ async def lifespan(_: FastAPI):
 
 
 app = FastAPI(title="dechord", lifespan=lifespan)
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["http://localhost:3000"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
 
 
 class MediaIdResponse(BaseModel):
@@ -69,6 +60,7 @@ class ChordSegment(BaseModel):
 
 class MediaDetail(BaseModel):
     id: str
+    original_filename: str
     status: str
     audio: AudioMeta
     chords: list[ChordSegment]
@@ -161,6 +153,7 @@ def get_media_detail(media_id: str):
 
     return MediaDetail(
         id=row.id,
+        original_filename=row.original_filename,
         status=row.status,
         audio=AudioMeta(
             sample_rate=44100,

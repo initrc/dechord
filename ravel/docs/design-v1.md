@@ -33,6 +33,7 @@ Stored per media item, served on `GET /media/{id}`. `start`/`end` are seconds fr
 ```json
 {
   "id": "media_abc",
+  "original_filename": "song.mp3",
   "status": "done",
   "audio": {
     "sample_rate": 44100,
@@ -70,11 +71,13 @@ FastAPI + Pydantic + stdlib `sqlite3` (no ORM; the schema is tiny). One process,
 
 Async model stays: not all users have a powerful GPU, so the chord stage can still take minutes on weak hardware. The upload endpoint returns immediately with an ID; the frontend polls for completion.
 
+No CORS middleware — the frontend proxies API calls through Next.js rewrites (`/api/:path*` → backend), so both share the same origin. The backend runs without CORS headers.
+
 Endpoint surface:
 
 - `POST /media` (multipart upload) → `{ id }`. Stores the file, hashes it, creates a `media` row in `queued` state, queues recognition.
 - `GET /media` → list of `{ id, original_filename, uploaded_at, status, has_chords }`. Powers the library list UI.
-- `GET /media/{id}` → full record incl. `chords` (the Output contract above). 404 if unknown.
+- `GET /media/{id}` → full record incl. `original_filename`, `chords` (the Output contract below). 404 if unknown.
 - `GET /media/{id}/audio/source` → streams the original upload. Used by the frontend playback UI.
 - `POST /media/{id}/chords` → re-runs chord recognition on an existing item. Returns `{ job_id }`. For manual re-recognition.
 - `GET /jobs/{id}` → `{ status, progress, media_id }`. Polled by the frontend. `status` ∈ `queued | recognizing | done | failed`.
@@ -95,8 +98,10 @@ v1 surface, two views:
 
 1. **Library list** — table of media items: filename, duration, status, has-chords. Upload box at the top. Row click → item view. Re-run recognition button per item for manual testing.
 2. **Item view** — two stacked tracks, one shared transport:
-   - **Chord track (top)** — a row of labeled rectangles, one per chord in `chords[]`, widths proportional to `end - start`, labels rendered with `tonal.js` (root, quality). No bar ruler; the `<->` axis is `mm:ss` seconds. Playback cursor sweeps across in sync with the master transport.
-   - **Master track (bottom)** — thin waveform of the source upload, same timeline as the chord track. Play / pause / seek on a single transport controls both.
+    - **Chord track (top)** — labeled rectangles laid out in multiple rows (like sheet music), one per chord in `chords[]`, widths proportional to `end - start`. Labels use simplified notation (e.g., `C`, `Am`). Chords that cross row boundaries are split across rows, with the label shown only on the first part. The `<->` axis is `mm:ss` seconds. Playback cursor sweeps across in sync with the master transport.
+    - **Master track (bottom)** — thin waveform of the source upload, same timeline as the chord track. Play / pause / seek on a single transport controls both.
+
+The API client uses relative URLs (`/api/...`) which are proxied to the backend via Next.js rewrites. Server-side rendering constructs absolute URLs from `localhost:3000`.
 
 Audio playback uses the Web Audio API on the master track only. No per-stem playback, no mute/solo, no per-stem FX, no editing, no export.
 

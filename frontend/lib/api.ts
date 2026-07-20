@@ -1,7 +1,22 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000"
+const API_BASE_URL = process.env.API_BASE_URL ?? "/api"
+
+function getBaseUrl(): string {
+  // Client-side: relative URLs work because the browser resolves them
+  if (typeof window !== "undefined") {
+    return API_BASE_URL
+  }
+  // Server-side with absolute URL: use as-is
+  if (API_BASE_URL.startsWith("http")) {
+    return API_BASE_URL
+  }
+  // Server-side with relative URL: construct absolute URL for fetch()
+  const host = process.env.HOST ?? "localhost"
+  const port = process.env.PORT ?? "3000"
+  return `http://${host}:${port}${API_BASE_URL}`
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BASE_URL}${path}`, init)
+  const res = await fetch(`${getBaseUrl()}${path}`, init)
   if (!res.ok) {
     throw new Error(`API error: ${res.status} ${res.statusText}`)
   }
@@ -28,6 +43,24 @@ export type JobResponse = {
   error: string | null
 }
 
+export type ChordSegment = {
+  start: number
+  end: number
+  label: string
+}
+
+export type MediaDetailResponse = {
+  id: string
+  original_filename: string
+  status: string
+  audio: {
+    sample_rate: number
+    duration: number
+    source_path: string
+  }
+  chords: ChordSegment[]
+}
+
 export type JobIdResponse = {
   job_id: string
 }
@@ -45,6 +78,8 @@ export const api = {
   },
 
   listMedia: () => api.get<MediaListItem[]>("/media"),
+
+  getMedia: (id: string) => api.get<MediaDetailResponse>(`/media/${id}`),
 
   getJob: (id: string) => api.get<JobResponse>(`/jobs/${id}`),
 

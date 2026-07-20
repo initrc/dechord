@@ -1,7 +1,7 @@
 ---
 id: T0010
 title: Implement item view chord track
-status: new
+status: done
 dependencies:
   - T0007
   - T0008
@@ -28,3 +28,14 @@ dependencies:
 - Layout shapes (rectangle width per second) must match between chord track and master track — share a `secondsToPx` helper between the two tracks. T0011 will reuse it; define it here in a small shared module.
 - Capture a fixed visible-time-window scroll approach if needed; do not over-engineer. A simple scroll container with a wide inner div is fine for v1.
 - Reference: `ravel/docs/design-v1.md` Frontend section, view 2.
+
+## Decisions made during implementation
+
+- **No CORS middleware**: The backend no longer sets CORS headers. The frontend proxies API calls through Next.js rewrites (`/api/:path*` → backend), so both share the same origin.
+- **`original_filename` in `GET /media/{id}`**: Added to the response so the item view can display the filename (without extension) as the page title instead of the media hash.
+- **Simplified chord notation**: Labels display as `C`, `Am`, `F#m` etc. (major = root only, minor = root + `m`) rather than `C major` / `A minor`.
+- **Multi-row sheet music layout**: Chords are laid out in multiple horizontal rows instead of a single scrollable row. `ROW_SECONDS` is configurable (15s on mobile, 30s on desktop via Tailwind responsive CSS variable `[--row-seconds:15] sm:[--row-seconds:30]`).
+- **Chord splitting across rows**: Chords that cross row boundaries are split. Part 1 shows the label, Part 2 is blank. Both parts share the same background color to indicate they are the same chord.
+- **Three segment colors**: Two alternating colors for chord backgrounds (`bg-primary/10`, `bg-primary/5`) and one for silence (`bg-muted/10`). Split chord parts inherit the color of their parent chord.
+- **Duration display**: Uses `Math.ceil` instead of `Math.round` to avoid rounding down (e.g., 98.7s shows as 99s, not 98s).
+- **Server-side fetch URL**: The API client uses relative URLs on the client and constructs absolute URLs (`http://localhost:3000/api/...`) on the server for SSR.
