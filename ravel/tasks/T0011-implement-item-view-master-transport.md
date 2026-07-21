@@ -1,7 +1,7 @@
 ---
 id: T0011
 title: Implement item view master track and transport
-status: new
+status: done
 dependencies:
   - T0010
 ---
@@ -28,3 +28,13 @@ dependencies:
 - The transport is one shared widget; both tracks use the same `secondsToPx` helper introduced in T0010.
 - Loading the audio each navigation is fine for v1 — caching is premature.
 - Reference: `ravel/docs/design-v1.md` Frontend section, view 2.
+
+## Decisions made during implementation
+
+- **Per-row stacked layout (shared axis per row)**: Each row renders the chord strip, master waveform, and axis together, so the "two stacked tracks share one horizontal timeline" semantics holds per multi-row chunk. The previous single `ChordTrack` block was split into a per-row `ChordTrackRow` so the master track can interleave with it.
+- **Shared row layout extracted to `lib/layout.ts`**: `useRowSeconds` (CSS-var-driven responsive `--row-seconds:15 sm:30`) and `buildTimeRows` live there. `ChordTrack` and `MasterTrack` both call `buildTimeRows` so chord squares and waveform columns align at the same `mm:ss` boundaries.
+- **Waveform**: thin peak-per-pixel canvas (max abs amplitude over the sample range covered by that pixel column), one canvas per row. Theme-aware color sourced from `--muted-foreground` so it follows light/dark without a hardcoded hex.
+- **Audio clock from `AudioContext.currentTime`**: `useAudioPlayer` records `startCtxTime`/`startOffset` at `node.start()`, and a `requestAnimationFrame` loop reads `startOffset + (ctx.currentTime - startCtxTime)` to drive `currentTime`. No JS-interval drift.
+- **Audio preloaded on mount**: `decodeAudioData` runs on a suspended AudioContext on first mount so the waveform renders before the user hits play; `resume()` still waits for the play-button gesture inside `play()`.
+- **Cursor is one DOM overlay per row**: when `currentTime` falls within a row's `[rowStart, rowEnd)`, a 2px `bg-primary` line spans both the chord strip and the master strip — visually one continuous playhead across the two tracks. Only the row containing `currentTime` shows the cursor.
+- **Seek on click anywhere on the row block**: clicking the chord strip, master strip, or axis computes `rowStart + x / PX_PER_SECOND` and calls `player.seek`, which restarts the AudioBufferSourceNode from the new offset if currently playing.

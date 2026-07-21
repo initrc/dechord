@@ -2,7 +2,7 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { api, type MediaDetailResponse } from "@/lib/api"
 import { toDisplayChords } from "@/lib/chords"
-import { ChordTrack } from "@/components/chord-track"
+import { ItemView } from "@/components/item-view"
 
 export default async function Page({
   params,
@@ -42,11 +42,11 @@ export default async function Page({
           </Link>
           <h1 className="flex-1 text-center text-lg font-semibold pr-5">{title}</h1>
         </div>
-        {displayChords.length > 0 ? (
-          <ChordTrack chords={displayChords} duration={media.audio.duration} />
-        ) : (
-          <p className="text-sm text-muted-foreground">No chords detected.</p>
-        )}
+        <ItemView
+          mediaId={media.id}
+          duration={media.audio.duration}
+          chords={displayChords}
+        />
       </div>
     </div>
   )
