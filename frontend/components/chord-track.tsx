@@ -70,7 +70,7 @@ export function ChordTrackRow({ row }: { row: ChordRow }) {
     <div className="flex" style={{ width, height: CHORD_HEIGHT }}>
       {row.segments.map((seg, j) => {
         const segWidth = secondsToPx(seg.end - seg.start)
-        const borderClass = j === 0 ? "border-l border-r border-y" : "border-r border-y"
+        const borderClass = j === 0 ? "border-l border-r border-t" : "border-r border-t"
         return (
           <div
             key={j}

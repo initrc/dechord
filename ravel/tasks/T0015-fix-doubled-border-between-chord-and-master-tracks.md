@@ -1,7 +1,7 @@
 ---
 id: T0015
 title: Fix doubled border between chord track and master track
-status: new
+status: done
 dependencies: []
 ---
 
