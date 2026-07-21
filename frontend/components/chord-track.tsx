@@ -33,9 +33,10 @@ function chordColorIndices(chords: DisplayChord[]): number[] {
 
 export type ChordRow = TimeRow & { segments: ChordRowSegment[] }
 
-// Sliding-window pass over sorted chords, matching each chord to the row(s)
-// it overlaps. Crosses-row chords are split; the first part keeps the label,
-// the second part is blank but inherits the parent's color.
+// Two-pass: first build all segments across rows with showLabel=false,
+// then for each chord that spans multiple rows, show the label only on the
+// wider of the two visible parts (by seconds). Chords fully contained in
+// one row are unaffected; split chords share the parent's color.
 export function buildChordRows(
   chords: DisplayChord[],
   duration: number,
@@ -43,25 +44,53 @@ export function buildChordRows(
 ): ChordRow[] {
   const rows = buildTimeRows(duration, rowSeconds)
   const colors = chordColorIndices(chords)
+
+  // Pass 1: build all segments, keyed by chord index.
+  const segmentsByChord: ChordRowSegment[][] = []
+  for (let i = 0; i < chords.length; i++) {
+    segmentsByChord.push([])
+  }
   let chordIdx = 0
-  return rows.map((row) => {
+  const result = rows.map((row) => {
     while (chordIdx < chords.length && chords[chordIdx].end <= row.rowStart) {
       chordIdx++
     }
     const segments: ChordRowSegment[] = []
-    for (let i = chordIdx; i < chords.length && chords[i].start < row.rowEnd; i++) {
+    for (
+      let i = chordIdx;
+      i < chords.length && chords[i].start < row.rowEnd;
+      i++
+    ) {
       const chord = chords[i]
-      segments.push({
+      const seg: ChordRowSegment = {
         start: Math.max(chord.start, row.rowStart),
         end: Math.min(chord.end, row.rowEnd),
         label: chord.isSilence ? "" : `${chord.root}${chord.quality}`,
         isSilence: chord.isSilence,
-        showLabel: !chord.isSilence && chord.start >= row.rowStart,
+        showLabel: false,
         colorIndex: colors[i],
-      })
+      }
+      segments.push(seg)
+      segmentsByChord[i].push(seg)
     }
     return { ...row, segments }
   })
+
+  // Pass 2: for each chord, show the label on its widest segment.
+  for (const segs of segmentsByChord) {
+    if (segs.length === 0) continue
+    let widest = segs[0]
+    for (let i = 1; i < segs.length; i++) {
+      if (segs[i].end - segs[i].start > widest.end - widest.start) {
+        widest = segs[i]
+      }
+    }
+    if (!widest.isSilence) {
+      widest.showLabel = true
+    }
+  }
+
+  return result
 }
 
 export function ChordTrackRow({ row }: { row: ChordRow }) {

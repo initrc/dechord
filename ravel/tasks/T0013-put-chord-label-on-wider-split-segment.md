@@ -1,7 +1,7 @@
 ---
 id: T0013
 title: Put chord label on wider split segment
-status: new
+status: done
 dependencies: []
 ---
 
