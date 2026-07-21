@@ -56,10 +56,12 @@ function MediaRow({
     }
   }
 
+  const isDone = displayStatus === "done"
+
   return (
     <TableRow
-      className="cursor-pointer"
-      onClick={() => router.push(`/media/${item.id}`)}
+      className={isDone ? "cursor-pointer" : "cursor-default opacity-70"}
+      onClick={isDone ? () => router.push(`/media/${item.id}`) : undefined}
     >
       <TableCell>{item.original_filename}</TableCell>
       <TableCell>
