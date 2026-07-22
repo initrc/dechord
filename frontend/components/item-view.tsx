@@ -39,8 +39,8 @@ export function ItemView({
     [duration, rowSeconds],
   )
   const chordRows = useMemo(
-    () => buildChordRows(chords, duration, rowSeconds),
-    [chords, duration, rowSeconds],
+    () => buildChordRows(chords, duration, rowSeconds, pxPerSecond),
+    [chords, duration, rowSeconds, pxPerSecond],
   )
   const hasChords = chords.length > 0
   const trackBlockHeight = hasChords ? CHORD_HEIGHT + MASTER_HEIGHT : MASTER_HEIGHT

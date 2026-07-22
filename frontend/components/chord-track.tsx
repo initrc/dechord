@@ -34,13 +34,15 @@ function chordColorIndices(chords: DisplayChord[]): number[] {
 export type ChordRow = TimeRow & { segments: ChordRowSegment[] }
 
 // Two-pass: first build all segments across rows with showLabel=false,
-// then for each chord that spans multiple rows, show the label only on the
-// wider of the two visible parts (by seconds). Chords fully contained in
-// one row are unaffected; split chords share the parent's color.
+// then for each chord that spans multiple rows, show the label on the
+// first part if it is wide enough (in pixels) to fit the label text; otherwise
+// fall back to the wider part. Chords fully contained in one row are
+// unaffected; split chords share the parent's color.
 export function buildChordRows(
   chords: DisplayChord[],
   duration: number,
   rowSeconds: number,
+  pxPerSecond: number,
 ): ChordRow[] {
   const rows = buildTimeRows(duration, rowSeconds)
   const colors = chordColorIndices(chords)
@@ -76,21 +78,58 @@ export function buildChordRows(
     return { ...row, segments }
   })
 
-  // Pass 2: for each chord, show the label on its widest segment.
+  // Pass 2: prefer the first segment if it fits the label; else use the widest.
+  const measureLabelWidth = createLabelWidthMeasurer()
   for (const segs of segmentsByChord) {
     if (segs.length === 0) continue
-    let widest = segs[0]
+    let pick = segs[0]
+    if (!pick.isSilence && labelFits(pick, pxPerSecond, measureLabelWidth)) {
+      pick.showLabel = true
+      continue
+    }
     for (let i = 1; i < segs.length; i++) {
-      if (segs[i].end - segs[i].start > widest.end - widest.start) {
-        widest = segs[i]
+      if (segs[i].end - segs[i].start > pick.end - pick.start) {
+        pick = segs[i]
       }
     }
-    if (!widest.isSilence) {
-      widest.showLabel = true
+    if (!pick.isSilence) {
+      pick.showLabel = true
     }
   }
 
   return result
+}
+
+// Match the `px-0.5` label padding (0.125rem each side) used in JSX.
+const LABEL_PADDING_PX = 4
+
+function labelFits(
+  seg: ChordRowSegment,
+  pxPerSecond: number,
+  measureLabelWidth: (label: string) => number,
+): boolean {
+  if (!seg.label) return false
+  const segWidth = secondsToPx(seg.end - seg.start, pxPerSecond)
+  return measureLabelWidth(seg.label) + LABEL_PADDING_PX <= segWidth
+}
+
+// Canvas-based text width measurement, cached by label string. Chord labels
+// come from a small vocabulary so the cache stays tiny. Lazily created on
+// first call so SSR does not touch the DOM. Returns width in CSS pixels.
+function createLabelWidthMeasurer(): (label: string) => number {
+  const cache = new Map<string, number>()
+  let ctx: CanvasRenderingContext2D | null = null
+  return (label: string) => {
+    const hit = cache.get(label)
+    if (hit !== undefined) return hit
+    if (ctx === null) {
+      const canvas = document.createElement("canvas")
+      ctx = canvas.getContext("2d")
+    }
+    const width = ctx ? ctx.measureText(label).width : 0
+    cache.set(label, width)
+    return width
+  }
 }
 
 export function ChordTrackRow({
@@ -113,7 +152,7 @@ export function ChordTrackRow({
             style={{ width: segWidth }}
             title={seg.label}
           >
-            {seg.showLabel && <span className="px-1">{seg.label}</span>}
+            {seg.showLabel && <span className="px-0.5">{seg.label}</span>}
           </div>
         )
       })}
