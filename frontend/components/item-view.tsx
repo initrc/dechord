@@ -4,9 +4,9 @@ import { useMemo } from "react"
 import { Play, Pause } from "lucide-react"
 
 import { useAudioPlayer } from "@/lib/audio-player"
-import { useRowSeconds, buildTimeRows } from "@/lib/layout"
+import { useRowSeconds, usePxPerSecond, buildTimeRows } from "@/lib/layout"
 import { useHotkey } from "@/hooks/use-hotkey"
-import { formatTime, secondsToPx, PX_PER_SECOND } from "@/lib/timeline"
+import { formatTime, secondsToPx } from "@/lib/timeline"
 import type { DisplayChord } from "@/lib/chords"
 import {
   buildChordRows,
@@ -28,6 +28,7 @@ export function ItemView({
 }) {
   const player = useAudioPlayer(mediaId, duration)
   const { containerRef, rowSeconds } = useRowSeconds()
+  const pxPerSecond = usePxPerSecond(containerRef)
 
   useHotkey(" ", () => void player.toggle())
 
@@ -45,7 +46,7 @@ export function ItemView({
   return (
     <div
       ref={containerRef}
-      className="[--row-seconds:15] sm:[--row-seconds:30] flex flex-col gap-6"
+      className="[--row-seconds:15] sm:[--row-seconds:30] [--px-per-second:22] sm:[--px-per-second:32] flex flex-col gap-6"
     >
       <div className="flex items-center gap-3">
         <Button
@@ -73,7 +74,7 @@ export function ItemView({
 
       <div className="flex flex-col gap-2">
         {rows.map((row, i) => {
-          const width = secondsToPx(row.rowEnd - row.rowStart)
+          const width = secondsToPx(row.rowEnd - row.rowStart, pxPerSecond)
           const cursorActive =
             player.currentTime >= row.rowStart && player.currentTime < row.rowEnd
           return (
@@ -84,21 +85,24 @@ export function ItemView({
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect()
                 const x = e.clientX - rect.left
-                player.seek(row.rowStart + x / PX_PER_SECOND)
+                player.seek(row.rowStart + x / pxPerSecond)
               }}
             >
-              {hasChords && <ChordTrackRow row={chordRows[i]} />}
+              {hasChords && (
+                <ChordTrackRow row={chordRows[i]} pxPerSecond={pxPerSecond} />
+              )}
               <MasterTrackRow
                 row={row}
                 channelData={player.channelData}
                 sampleRate={player.sampleRate}
+                pxPerSecond={pxPerSecond}
               />
-              <TimelineAxis row={row} width={width} />
+              <TimelineAxis row={row} width={width} pxPerSecond={pxPerSecond} />
               {cursorActive && (
                 <div
                   className="pointer-events-none absolute top-0 z-10 bg-primary"
                   style={{
-                    left: secondsToPx(player.currentTime - row.rowStart) - 2,
+                    left: secondsToPx(player.currentTime - row.rowStart, pxPerSecond) - 2,
                     height: trackBlockHeight,
                     width: 2,
                   }}

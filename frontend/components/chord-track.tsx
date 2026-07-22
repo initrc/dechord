@@ -93,12 +93,18 @@ export function buildChordRows(
   return result
 }
 
-export function ChordTrackRow({ row }: { row: ChordRow }) {
-  const width = secondsToPx(row.rowEnd - row.rowStart)
+export function ChordTrackRow({
+  row,
+  pxPerSecond,
+}: {
+  row: ChordRow
+  pxPerSecond: number
+}) {
+  const width = secondsToPx(row.rowEnd - row.rowStart, pxPerSecond)
   return (
     <div className="flex" style={{ width, height: CHORD_HEIGHT }}>
       {row.segments.map((seg, j) => {
-        const segWidth = secondsToPx(seg.end - seg.start)
+        const segWidth = secondsToPx(seg.end - seg.start, pxPerSecond)
         const borderClass = j === 0 ? "border-l border-r border-t" : "border-r border-t"
         return (
           <div

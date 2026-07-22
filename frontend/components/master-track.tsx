@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react"
 import { useTheme } from "next-themes"
-import { PX_PER_SECOND, secondsToPx } from "@/lib/timeline"
+import { secondsToPx } from "@/lib/timeline"
 import type { TimeRow } from "@/lib/layout"
 
 export const MASTER_HEIGHT = 40
@@ -14,14 +14,16 @@ export function MasterTrackRow({
   row,
   channelData,
   sampleRate,
+  pxPerSecond,
 }: {
   row: TimeRow
   channelData: Float32Array | null
   sampleRate: number
+  pxPerSecond: number
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const { resolvedTheme } = useTheme()
-  const width = secondsToPx(row.rowEnd - row.rowStart)
+  const width = secondsToPx(row.rowEnd - row.rowStart, pxPerSecond)
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -43,7 +45,7 @@ export function MasterTrackRow({
     const cssVar = getComputedStyle(canvas).getPropertyValue("--chart-2").trim()
     ctx.fillStyle = cssVar || "currentColor"
 
-    const secondsPerPx = 1 / PX_PER_SECOND
+    const secondsPerPx = 1 / pxPerSecond
     const samplesPerPx = Math.max(1, Math.floor(secondsPerPx * sampleRate))
     const mid = MASTER_HEIGHT / 2
     // The decoded buffer may be slightly shorter than `duration` (encoder
@@ -64,7 +66,7 @@ export function MasterTrackRow({
       const h = Math.max(1, peak * MASTER_HEIGHT * 0.95)
       ctx.fillRect(x, mid - h / 2, 1, h)
     }
-  }, [channelData, sampleRate, width, row.rowStart, resolvedTheme])
+  }, [channelData, sampleRate, width, row.rowStart, pxPerSecond, resolvedTheme])
 
   return (
     <canvas

@@ -6,9 +6,11 @@ export const AXIS_HEIGHT = 20
 export function TimelineAxis({
   row,
   width,
+  pxPerSecond,
 }: {
   row: TimeRow
   width: number
+  pxPerSecond: number
 }) {
   return (
     <div className="relative" style={{ width, height: AXIS_HEIGHT }}>
@@ -24,7 +26,7 @@ export function TimelineAxis({
           <span
             key={t}
             className={`absolute top-0.5 ${translateClass} text-[10px] text-muted-foreground`}
-            style={{ left: secondsToPx(t - row.rowStart) }}
+            style={{ left: secondsToPx(t - row.rowStart, pxPerSecond) }}
           >
             {formatTime(t)}
           </span>

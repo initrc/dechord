@@ -1,7 +1,7 @@
 ---
 id: T0014
 title: Make PX_PER_SECOND responsive
-status: new
+status: done
 dependencies: []
 ---
 

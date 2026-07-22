@@ -1,10 +1,13 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useRef } from "react"
 import { tickInterval } from "@/lib/timeline"
+import { useCssVar } from "@/hooks/use-css-var"
 
 const DEFAULT_ROW_SECONDS = 30
 const ROW_SECONDS_VAR = "--row-seconds"
+const DEFAULT_PX_PER_SECOND = 22
+const PX_PER_SECOND_VAR = "--px-per-second"
 
 export type TimeRow = {
   index: number
@@ -40,20 +43,24 @@ export function useRowSeconds(): {
   rowSeconds: number
 } {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [rowSeconds, setRowSeconds] = useState(DEFAULT_ROW_SECONDS)
-
-  useEffect(() => {
-    const el = containerRef.current
-    if (!el) return
-    const update = () => {
-      const v = getComputedStyle(el).getPropertyValue(ROW_SECONDS_VAR)
-      const n = parseInt(v)
-      if (!Number.isNaN(n) && n > 0) setRowSeconds(n)
-    }
-    update()
-    window.addEventListener("resize", update)
-    return () => window.removeEventListener("resize", update)
-  }, [])
-
+  const rowSeconds = useCssVar(
+    containerRef,
+    ROW_SECONDS_VAR,
+    DEFAULT_ROW_SECONDS,
+  )
   return { containerRef, rowSeconds }
+}
+
+// Reads the responsive `--px-per-second` CSS variable off the same container
+// as `useRowSeconds`. pxPerSecond drives every width computation in the item
+// view (chord squares, waveform canvas, seek math) so the chord track and
+// master track stay aligned across viewport changes.
+export function usePxPerSecond(
+  containerRef: React.RefObject<HTMLDivElement | null>,
+): number {
+  return useCssVar(
+    containerRef,
+    PX_PER_SECOND_VAR,
+    DEFAULT_PX_PER_SECOND,
+  )
 }

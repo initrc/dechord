@@ -1,7 +1,5 @@
-export const PX_PER_SECOND = 22
-
-export function secondsToPx(seconds: number): number {
-  return seconds * PX_PER_SECOND
+export function secondsToPx(seconds: number, pxPerSecond: number): number {
+  return seconds * pxPerSecond
 }
 
 export function formatTime(seconds: number): string {
