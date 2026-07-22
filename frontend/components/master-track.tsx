@@ -12,13 +12,13 @@ export const MASTER_HEIGHT = 40
 // `secondsToPx(rowEnd - rowStart)` and aligns with the chord row above it.
 export function MasterTrackRow({
   row,
-  channelData,
-  sampleRate,
+  peaks,
+  peaksPerSecond,
   pxPerSecond,
 }: {
   row: TimeRow
-  channelData: Float32Array | null
-  sampleRate: number
+  peaks: Float32Array | null
+  peaksPerSecond: number
   pxPerSecond: number
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -37,36 +37,36 @@ export function MasterTrackRow({
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     ctx.clearRect(0, 0, width, MASTER_HEIGHT)
 
-    if (!channelData || sampleRate <= 0) return
+    if (!peaks || peaksPerSecond <= 0) return
 
-    // Read --muted-foreground off the canvas so the waveform inherits the
-    // active theme. The preset defines it as an oklch() string (see
-    // globals.css), which canvas fillStyle accepts natively — no wrapping needed.
+    // Read --chart-2 off the canvas so the waveform inherits the active theme.
+    // The preset defines it as an oklch() string (see globals.css), which
+    // canvas fillStyle accepts natively — no wrapping needed.
     const cssVar = getComputedStyle(canvas).getPropertyValue("--chart-2").trim()
     ctx.fillStyle = cssVar || "currentColor"
 
     const secondsPerPx = 1 / pxPerSecond
-    const samplesPerPx = Math.max(1, Math.floor(secondsPerPx * sampleRate))
+    const peaksPerPx = Math.max(1, Math.floor(secondsPerPx * peaksPerSecond))
     const mid = MASTER_HEIGHT / 2
-    // The decoded buffer may be slightly shorter than `duration` (encoder
-    // quantization, truncation). Stop the outer loop where the samples actually
-    // end so we never read past channelData.length in the inner loop.
-    const safeWidth = Math.min(width, channelData.length / samplesPerPx)
+    // The peaks array may be slightly shorter than `duration` (encoder
+    // quantization, truncation). Stop where buckets actually end so we never
+    // read past peaks.length in the inner loop.
+    const safeWidth = Math.min(width, peaks.length / peaksPerPx)
 
     for (let x = 0; x < safeWidth; x++) {
-      const startSample = Math.floor((row.rowStart + x * secondsPerPx) * sampleRate)
-      // Clamp the last pixel column's read window; without this the inner loop
-      // would run i up to startSample + samplesPerPx, past the buffer end.
-      const endSample = Math.min(startSample + samplesPerPx, channelData.length)
+      const startBucket = Math.floor(
+        (row.rowStart + x * secondsPerPx) * peaksPerSecond,
+      )
+      const endBucket = Math.min(startBucket + peaksPerPx, peaks.length)
       let peak = 0
-      for (let i = startSample; i < endSample; i++) {
-        const v = Math.abs(channelData[i] as number)
+      for (let i = startBucket; i < endBucket; i++) {
+        const v = peaks[i] as number
         if (v > peak) peak = v
       }
       const h = Math.max(1, peak * MASTER_HEIGHT * 0.95)
       ctx.fillRect(x, mid - h / 2, 1, h)
     }
-  }, [channelData, sampleRate, width, row.rowStart, pxPerSecond, resolvedTheme])
+  }, [peaks, peaksPerSecond, width, row.rowStart, pxPerSecond, resolvedTheme])
 
   return (
     <canvas

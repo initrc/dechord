@@ -4,6 +4,7 @@ import { useMemo } from "react"
 import { Play, Pause } from "lucide-react"
 
 import { useAudioPlayer } from "@/lib/audio-player"
+import { usePeaks } from "@/lib/peaks"
 import { useRowSeconds, usePxPerSecond, buildTimeRows } from "@/lib/layout"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { formatTime, secondsToPx } from "@/lib/timeline"
@@ -27,6 +28,7 @@ export function ItemView({
   chords: DisplayChord[]
 }) {
   const player = useAudioPlayer(mediaId, duration)
+  const { peaks, peaksPerSecond } = usePeaks(mediaId)
   const { containerRef, rowSeconds } = useRowSeconds()
   const pxPerSecond = usePxPerSecond(containerRef)
 
@@ -93,8 +95,8 @@ export function ItemView({
               )}
               <MasterTrackRow
                 row={row}
-                channelData={player.channelData}
-                sampleRate={player.sampleRate}
+                peaks={peaks}
+                peaksPerSecond={peaksPerSecond}
                 pxPerSecond={pxPerSecond}
               />
               <TimelineAxis row={row} width={width} pxPerSecond={pxPerSecond} />

@@ -1,7 +1,7 @@
 ---
 id: T0016
 title: Evaluate library for master-track playback and rendering
-status: new
+status: review
 dependencies: []
 ---
 
@@ -82,7 +82,7 @@ The user's complaint — "the master track takes quite a while to render" — is
 
 ## Recommendation
 
-- **Playback hook:** Candidate A. Implement a thin `HTMLAudioElement`-based hook (~30 lines) as the default. Keep `useAudioPlayer` (Web Audio) in `frontend/lib/audio-player.ts` as an alternative; both expose the same `AudioPlayer` shape so `item-view.tsx:6` can switch with one import. The trade is real — seek has a tens-of-milliseconds decode gap instead of being sub-ms — but the line-count win is the bigger win for v1 and can be revisited if the seek latency becomes perceptible in practice.
+- **Playback hook:** Candidate A. After implementing, the user verified seek felt identical to the Web Audio path on a 5-min song, so the "keep both as easy to switch" provision was dropped — `frontend/lib/audio-player.ts` was overwritten in place with the `HTMLAudioElement` hook (~60 lines vs the prior 208-line Web Audio version). If seek latency ever becomes perceptible on longer material, resurrect the Web Audio path from git history rather than carrying it as dead surface area.
 - **Waveform:** Candidate 1. Precompute peaks on mount into a `useRef`, have `MasterTrackRow` bucket-average from it per pixel column.
 - **Free adjacent fixes to land in the same follow-up:**
   - Drop `resolvedTheme` from `master-track.tsx:69` deps; read `--chart-2` inside the effect without it being a dep. A color flip should not trigger a sample rescan.
