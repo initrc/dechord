@@ -86,6 +86,7 @@ Per-package notes live in [`backend/README.md`](backend/README.md) and
 | GET    | `/media`                      | List media items (powers the library list).          |
 | GET    | `/media/{id}`                 | Full record incl. `chords` (the output contract).    |
 | GET    | `/media/{id}/audio/source`    | Streams the original upload.                          |
+| GET    | `/media/{id}/audio/peaks`     | Precomputed max-abs peaks (float32 blob) for the master waveform. Computed once at upload alongside the ffmpeg WAV normalization; frontend renders the waveform from this without decoding audio client-side. |
 | POST   | `/media/{id}/chords`           | Re-run recognition on an existing item.              |
 | GET    | `/jobs/{id}`                   | Poll job status (`queued\|recognizing\|done\|failed`). |
 

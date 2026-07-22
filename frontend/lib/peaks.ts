@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react"
 
-// Fixed peaks resolution. 1000/sec is fine-grained enough to bucket for any
-// visible zoom in the item view without rescanning the raw sample buffer.
-const PEAKS_PER_SECOND = 1000
+// Must match `backend/app/uploads.py` `PEAKS_PER_SECOND`. A single shared value
+// across the two sites keeps bucket→time mapping in sync; do not drift.
+export const PEAKS_PER_SECOND = 1000
 
 export type PeaksData = {
   peaks: Float32Array | null
@@ -12,13 +12,9 @@ export type PeaksData = {
   loading: boolean
 }
 
-// Decode the source once on mount, scan the first channel into a fixed-rate
-// max-abs peaks array. `MasterTrackRow` then reads buckets from the array
-// instead of walking raw samples per pixel, so resize/theme/row re-renders
-// are O(peaks), not O(samples).
-//
-// A second fetch of the source file (the player already streams it) is the
-// one-time price. The browser cache typically dedupes the bytes.
+// Fetch a precomputed peaks blob from the backend. Computed once at upload by
+// the ffmpeg WAV pass; the waveform renders as soon as the small blob lands,
+// no client-side `decodeAudioData` or sample scan.
 export function usePeaks(mediaId: string): PeaksData {
   const [peaks, setPeaks] = useState<Float32Array | null>(null)
   const [loading, setLoading] = useState(true)
@@ -27,37 +23,10 @@ export function usePeaks(mediaId: string): PeaksData {
     let cancelled = false
     void (async () => {
       try {
-        const res = await fetch(`/api/media/${mediaId}/audio/source`)
-        if (!res.ok) throw new Error(`audio fetch failed: ${res.status}`)
+        const res = await fetch(`/api/media/${mediaId}/audio/peaks`)
+        if (!res.ok) throw new Error(`peaks fetch failed: ${res.status}`)
         const arr = await res.arrayBuffer()
-        const Ctor: typeof AudioContext =
-          window.AudioContext ??
-          (window as unknown as { webkitAudioContext: typeof AudioContext })
-            .webkitAudioContext
-        const ctx = new Ctor()
-        try {
-          const buf = await ctx.decodeAudioData(arr)
-          if (cancelled) return
-          const data = buf.getChannelData(0)
-          const bucketSize = Math.max(
-            1,
-            Math.floor(buf.sampleRate / PEAKS_PER_SECOND),
-          )
-          const bucketCount = Math.floor(data.length / bucketSize)
-          const out = new Float32Array(bucketCount)
-          for (let b = 0; b < bucketCount; b++) {
-            let peak = 0
-            const base = b * bucketSize
-            for (let i = 0; i < bucketSize; i++) {
-              const v = Math.abs(data[base + i] as number)
-              if (v > peak) peak = v
-            }
-            out[b] = peak
-          }
-          if (!cancelled) setPeaks(out)
-        } finally {
-          void ctx.close().catch(() => {})
-        }
+        if (!cancelled) setPeaks(new Float32Array(arr))
       } catch (e) {
         if (!cancelled) console.error("peaks load failed", e)
       } finally {

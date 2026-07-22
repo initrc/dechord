@@ -189,6 +189,23 @@ def get_audio_source(media_id: str):
     return FileResponse(file_path)
 
 
+@app.get("/media/{media_id}/audio/peaks")
+def get_audio_peaks(media_id: str):
+    conn = persistence.open_db(persistence.DB_PATH)
+    try:
+        row = persistence.get_media(conn, media_id)
+    finally:
+        conn.close()
+    if row is None:
+        raise HTTPException(status_code=404, detail=f"unknown media: {media_id}")
+
+    peaks_file = persistence.peaks_path(row.sha256, library_dir=persistence.LIBRARY_DIR)
+    if not peaks_file.exists():
+        raise HTTPException(status_code=404, detail="peaks file not found")
+
+    return FileResponse(peaks_file, media_type="application/octet-stream")
+
+
 @app.post("/media/{media_id}/chords", response_model=JobIdResponse)
 def rerun_chords(media_id: str, background_tasks: BackgroundTasks):
     conn = persistence.open_db(persistence.DB_PATH)

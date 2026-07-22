@@ -95,6 +95,43 @@ def test_get_audio_source_404(client: TestClient) -> None:
     assert resp.status_code == 404
 
 
+def test_get_audio_peaks(client: TestClient) -> None:
+    media_id = _upload_wav(client)
+
+    resp = client.get(f"/media/{media_id}/audio/peaks")
+    assert resp.status_code == 200
+    assert resp.headers["content-type"] == "application/octet-stream"
+    # Each peak is a float32 (4 bytes). For a 0.5s source at 44100 Hz with
+    # 1000 peaks/sec the bucket size is 44 samples → 500 full buckets, so
+    # the body's byte length is 4 * n_peaks.
+    assert len(resp.content) % 4 == 0
+    assert len(resp.content) > 0
+
+
+def test_get_audio_peaks_404(client: TestClient) -> None:
+    # Unknown media id → 404 for the media lookup, before the peaks file check.
+    resp = client.get("/media/media_nope/audio/peaks")
+    assert resp.status_code == 404
+
+
+def test_get_audio_peaks_404_when_file_missing(
+    client: TestClient, library: Path
+) -> None:
+    media_id = _upload_wav(client)
+
+    conn = open_db(persistence.DB_PATH)
+    try:
+        row = get_media(conn, media_id)
+        assert row is not None
+        peaks_path = persistence.peaks_path(row.sha256, library_dir=persistence.LIBRARY_DIR)
+    finally:
+        conn.close()
+    peaks_path.unlink()
+
+    resp = client.get(f"/media/{media_id}/audio/peaks")
+    assert resp.status_code == 404
+
+
 def test_rerun_chords(client: TestClient) -> None:
     media_id = _upload_wav(client)
 

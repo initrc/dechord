@@ -13,7 +13,9 @@ import logging
 import subprocess
 import wave
 from dataclasses import dataclass
+from pathlib import Path
 
+import numpy as np
 from fastapi import UploadFile
 
 from app import persistence
@@ -24,6 +26,10 @@ logger = logging.getLogger(__name__)
 # Open decision #1 (design-v1.md) — locked here: 50 MB, {mp3, wav, flac, m4a}.
 MAX_UPLOAD_BYTES = 50 * 1024 * 1024
 ALLOWED_EXTS = frozenset({"mp3", "wav", "flac", "m4a"})
+
+# Must match `frontend/lib/peaks.ts` `PEAKS_PER_SECOND`. A single shared value
+# across the two sites keeps bucket→time mapping in sync; do not drift.
+PEAKS_PER_SECOND = 1000
 
 _CHUNK = 1024 * 1024
 
@@ -68,6 +74,34 @@ def _normalize_to_wav(input_path, output_path) -> None:
 def _wav_duration(wav_path) -> float:
     with wave.open(str(wav_path), "rb") as w:
         return w.getnframes() / w.getframerate()
+
+
+def _compute_peaks(source_wav: Path, peaks_per_second: int = PEAKS_PER_SECOND) -> bytes:
+    """Max-abs per-bucket peaks of the normalized WAV as little-endian float32 bytes.
+
+    ffmpeg writes mono pcm_s16le (16 bits), so sampwidth is 2 (2 bytes); the
+    assumption is logged rather than handled because any other sample width
+    would mean ffmpeg's output contract changed, which is a code change, not
+    a runtime branch.
+    """
+    with wave.open(str(source_wav), "rb") as w:
+        nframes = w.getnframes()
+        sampwidth = w.getsampwidth()
+        framerate = w.getframerate()
+        frames = w.readframes(nframes)
+    if sampwidth != 2:
+        raise UploadError(
+            f"unexpected sample width {sampwidth} from ffmpeg (expected 2)", 500
+        )
+    samples = np.asarray(
+        np.frombuffer(frames, dtype=np.int16).astype(np.float32) / 32768.0,
+        dtype=np.float32,
+    )
+    bucket_size = max(1, framerate // peaks_per_second)
+    n_buckets = samples.size // bucket_size
+    trim = n_buckets * bucket_size
+    absvals = np.abs(samples[:trim]).reshape(n_buckets, bucket_size)
+    return absvals.max(axis=1).tobytes()
 
 
 async def ingest_upload(
@@ -119,6 +153,8 @@ async def ingest_upload(
             source_wav,
         )
         duration = _wav_duration(source_wav)
+        peaks = _compute_peaks(source_wav)
+        persistence.write_peaks(sha, peaks, library_dir=library_dir)
         row = persistence.insert_media(
             conn,
             sha256=sha,

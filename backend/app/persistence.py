@@ -342,3 +342,22 @@ def write_chords(
 
 def read_chords(sha256: str, library_dir: Path = LIBRARY_DIR) -> bytes:
     return chords_path(sha256, library_dir).read_bytes()
+
+
+def peaks_path(sha256: str, library_dir: Path = LIBRARY_DIR) -> Path:
+    """Max-abs peaks blob at a fixed Hz, written by the upload stage for waveform render."""
+    return library_dir / sha256 / "peaks.bin"
+
+
+def write_peaks(
+    sha256: str, data: bytes, library_dir: Path = LIBRARY_DIR
+) -> Path:
+    ensure_library(library_dir)
+    path = peaks_path(sha256, library_dir)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_bytes(data)
+    return path
+
+
+def read_peaks(sha256: str, library_dir: Path = LIBRARY_DIR) -> bytes:
+    return peaks_path(sha256, library_dir).read_bytes()

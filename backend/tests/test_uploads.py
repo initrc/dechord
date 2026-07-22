@@ -59,6 +59,9 @@ def test_upload_valid_returns_id_and_stores_files(client, tmp_path):
         assert row.has_chords is True
         assert (library / f"{row.sha256}.wav").read_bytes() == wav_bytes
         assert (library / row.sha256 / "source.wav").exists()
+        # Peaks are precomputed at upload; present with non-zero byte length.
+        peaks = (library / row.sha256 / "peaks.bin")
+        assert peaks.exists() and peaks.stat().st_size > 0
     finally:
         conn.close()
 
@@ -77,6 +80,17 @@ def test_byte_identical_upload_dedups(client, tmp_path):
     conn = open_db(persistence.DB_PATH)
     try:
         assert len(list_media(conn)) == 1
+        row = get_media(conn, first.json()["id"])
+        assert row is not None
+        # Dedup did not touch the peaks blob written by the first upload;
+        # size matches and contents are byte-stable.
+        peaks_path = persistence.peaks_path(row.sha256, library_dir=persistence.LIBRARY_DIR)
+        assert peaks_path.exists()
+        first_peaks = peaks_path.read_bytes()
+        # Force the dedup path by re-uploading; the existing peaks file
+        # should be untouched (no rewrite happens on dedup).
+        client.post("/media", files={"file": ("clip.wav", wav_bytes, "audio/wav")})
+        assert peaks_path.read_bytes() == first_peaks
     finally:
         conn.close()
 
