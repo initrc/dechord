@@ -6,6 +6,7 @@ import { api, type MediaListItem } from "@/lib/api"
 import { useJobPoller } from "@/hooks/use-job-poller"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { ThemeToggle } from "@/components/theme-toggle"
 import {
   Table,
   TableBody,
@@ -127,11 +128,14 @@ export function LibraryView() {
           ref={fileRef}
           type="file"
           accept=".mp3,.wav,.flac,.m4a"
-          className="max-w-xs"
+          className="max-w-xs cursor-pointer file:mr-2 file:cursor-pointer"
         />
-        <Button onClick={handleUpload} disabled={uploading}>
+        <Button className="cursor-pointer" onClick={handleUpload} disabled={uploading}>
           {uploading ? "Uploading..." : "Upload"}
         </Button>
+        <div className="ml-auto">
+          <ThemeToggle />
+        </div>
       </div>
       <Table>
         <TableHeader>

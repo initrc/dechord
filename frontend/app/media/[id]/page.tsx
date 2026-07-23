@@ -3,6 +3,7 @@ import { ArrowLeft } from "lucide-react"
 import { api, type MediaDetailResponse } from "@/lib/api"
 import { toDisplayChords } from "@/lib/chords"
 import { ItemView } from "@/components/item-view"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 export default async function Page({
   params,
@@ -38,9 +39,10 @@ export default async function Page({
       <div className="flex flex-col items-center gap-8 overflow-x-auto max-w-full">
         <div className="flex w-full items-center gap-2">
           <Link href="/" className="text-muted-foreground hover:text-foreground">
-            <ArrowLeft className="h-5 w-5" />
+            <ArrowLeft className="size-5" />
           </Link>
-          <h1 className="flex-1 text-center text-lg font-semibold pr-5">{title}</h1>
+          <h1 className="flex-1 text-center text-lg font-semibold">{title}</h1>
+          <ThemeToggle />
         </div>
         <ItemView
           mediaId={media.id}
