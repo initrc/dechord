@@ -8,7 +8,7 @@ dependencies:
 
 # Scope
 
-- Eliminate the ~2s client-side decode that still delays the master waveform on item-view mount (T0016 moved peaks precompute off the playback path but kept it on the frontend). Compute peaks once at upload alongside the existing ffmpeg WAV normalization, cache them under `library/{sha}/`, and serve via a new `GET /media/{id}/audio/peaks` endpoint.
+- Eliminate the ~2s client-side decode that still delays the master waveform on sheet-view mount (T0016 moved peaks precompute off the playback path but kept it on the frontend). Compute peaks once at upload alongside the existing ffmpeg WAV normalization, cache them under `library/{sha}/`, and serve via a new `GET /media/{id}/audio/peaks` endpoint.
 - `usePeaks` becomes a thin fetch — no `AudioContext`, no `decodeAudioData`, no client-side scan. The waveform renders as soon as the small peaks blob arrives.
 
 # Acceptance
@@ -16,7 +16,7 @@ dependencies:
 - `POST /media` computes and stores a peaks file for every freshly ingested media item, using the already-required ffmpeg WAV as input. Deduped uploads (existing sha) do not recompute.
 - `GET /media/{media_id}/audio/peaks` streams the cached peaks file as `application/octet-stream` (raw float32 bytes). Returns 404 when the media id or the peaks file is missing.
 - `frontend/lib/peaks.ts` drops `AudioContext` / `decodeAudioData` / sample scan; `usePeaks` becomes a fetch + `Float32Array` wrap.
-- A 5-min song's item view shows the waveform within tens of ms of mount (peak blob arrival), not seconds — no audible-progress-blocking decode on the main thread.
+- A 5-min song's sheet view shows the waveform within tens of ms of mount (peak blob arrival), not seconds — no audible-progress-blocking decode on the main thread.
 - Backend: `pytest` passes; new/updated tests cover peak generation and the endpoint. Frontend: `pnpm typecheck` and `pnpm lint` pass.
 
 # Implementation Notes

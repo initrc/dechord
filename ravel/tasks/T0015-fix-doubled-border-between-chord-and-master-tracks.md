@@ -8,7 +8,7 @@ dependencies: []
 # Scope
 
 - Eliminate the visually doubled 1px border that appears between the chord track's bottom edge and the master track's top edge when both tracks are present, which makes that seam look twice as thick as the other borders.
-- The chord track is optional (`hasChords` may be false in `frontend/components/item-view.tsx:42`), so the seam only exists when chords are rendered. The fix must not add a stray missing-border artifact when only the master track is shown.
+- The chord track is optional (`hasChords` may be false in `frontend/components/sheet-view.tsx:42`), so the seam only exists when chords are rendered. The fix must not add a stray missing-border artifact when only the master track is shown.
 
 # Acceptance
 
@@ -23,4 +23,4 @@ dependencies: []
   1. Drop the chord track's bottom border: replace `border-y` with `border-t` only on chord segments (no change to master). When `hasChords` is false the master's own `border` still draws the top, so no artifact. This is the user's suggested approach and is the simpler one.
   2. Use CSS border-collapse semantics (e.g., `-mt-px` on the master track to overlap the borders). Adds a nested-track margin coupling the two components that doesn't exist today — more invasive, avoid unless fix 1 has a downside.
 - Prefer fix 1 unless implementation reveals a problem (e.g., the chord strip looks unbalanced without a bottom border). The user already noted the chord track may not exist, which fix 1 handles cleanly.
-- Confirm the cursor overlay in `frontend/components/item-view.tsx:97-106` still spans both strips correctly after the change — it's positioned absolutely from the row block top, not from the chord strip bottom, so it should be unaffected.
+- Confirm the cursor overlay in `frontend/components/sheet-view.tsx:97-106` still spans both strips correctly after the change — it's positioned absolutely from the row block top, not from the chord strip bottom, so it should be unaffected.

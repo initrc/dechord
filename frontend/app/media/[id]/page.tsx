@@ -2,7 +2,7 @@ import Link from "next/link"
 import { ArrowLeft } from "lucide-react"
 import { api, type MediaDetailResponse } from "@/lib/api"
 import { toDisplayChords } from "@/lib/chords"
-import { ItemView } from "@/components/item-view"
+import { SheetView } from "@/components/sheet-view"
 import { ThemeToggle } from "@/components/theme-toggle"
 
 export default async function Page({
@@ -44,7 +44,7 @@ export default async function Page({
           <h1 className="flex-1 text-center text-lg font-semibold">{title}</h1>
           <ThemeToggle />
         </div>
-        <ItemView
+        <SheetView
           mediaId={media.id}
           duration={media.audio.duration}
           chords={displayChords}

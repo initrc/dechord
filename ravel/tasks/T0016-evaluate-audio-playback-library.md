@@ -53,7 +53,7 @@ The user's complaint — "the master track takes quite a while to render" — is
 ### 4. wavesurfer.js
 
 - Single library that wraps audio loading, precomputed peaks, waveform canvas, and play/pause/seek.
-- Owns the canvas and expects a single full-width container. The current per-row stacked layout in `item-view.tsx:76-114` (one canvas per row, cursor as per-row overlay, click-seek bound per row block) does not map cleanly onto wavesurfer's single-region model.
+- Owns the canvas and expects a single full-width container. The current per-row stacked layout in `sheet-view.tsx:76-114` (one canvas per row, cursor as per-row overlay, click-seek bound per row block) does not map cleanly onto wavesurfer's single-region model.
 - Reverses T0011's "don't pull in wavesurfer.js" decision. Candidate 1 fixes the same problem without that cost, so the reversal isn't justified.
 
 ### 5. Howler.js / Tone.js
@@ -78,7 +78,7 @@ The user's complaint — "the master track takes quite a while to render" — is
 ### Switching
 
 - Both hooks return the same `AudioPlayer` type (`audio-player.ts:5-16`). One has `channelData`, one does not. Either lift `channelData` out of the type (and have `MasterTrackRow` consume peaks from a separate ref instead — already the plan per candidate 1), or keep `channelData` as `null` in the HTMLAudio variant.
-- One import site in `item-view.tsx:6` controls which hook the item view uses. Or accept a prop / env flag. Either is a one-line switch. The follow-up should pick the simplest one that survives across rebuilds.
+- One import site in `sheet-view.tsx:6` controls which hook the sheet view uses. Or accept a prop / env flag. Either is a one-line switch. The follow-up should pick the simplest one that survives across rebuilds.
 
 ## Recommendation
 
@@ -90,7 +90,7 @@ The user's complaint — "the master track takes quite a while to render" — is
 
 ## Follow-up task (out of scope here)
 
-- Add `frontend/lib/audio-player-html.ts` (or similar) implementing the `HTMLAudioElement` hook with the same `AudioPlayer` surface; keep `audio-player.ts` untouched. Switch `item-view.tsx` to import the new hook. Precompute peaks into a `useRef` once `decodeAudioData` resolves (or, for the HTMLAudio variant, on a separate fetch the waveform owns). Update `MasterTrackRow` to read peaks from the ref and bucket-average per pixel column; drop `resolvedTheme` from deps. Verify `pnpm typecheck` and `pnpm lint` pass, the waveform still aligns with the chord track across rows, seek + cursor + click-seek still work, and that switching the player is a one-import change.
+- Add `frontend/lib/audio-player-html.ts` (or similar) implementing the `HTMLAudioElement` hook with the same `AudioPlayer` surface; keep `audio-player.ts` untouched. Switch `sheet-view.tsx` to import the new hook. Precompute peaks into a `useRef` once `decodeAudioData` resolves (or, for the HTMLAudio variant, on a separate fetch the waveform owns). Update `MasterTrackRow` to read peaks from the ref and bucket-average per pixel column; drop `resolvedTheme` from deps. Verify `pnpm typecheck` and `pnpm lint` pass, the waveform still aligns with the chord track across rows, seek + cursor + click-seek still work, and that switching the player is a one-import change.
 
 ## References
 
@@ -100,8 +100,8 @@ The user's complaint — "the master track takes quite a while to render" — is
 - `frontend/components/master-track.tsx:48-49` — `samplesPerPx` couples peak cost to `pxPerSecond`.
 - `frontend/components/master-track.tsx:56-68` — per-pixel peak scan, the O(samples) cost to eliminate.
 - `frontend/components/master-track.tsx:69` — dep array includes `resolvedTheme`; forces rescan on theme toggle.
-- `frontend/components/item-view.tsx:6` — single import site that selects the hook.
-- `frontend/components/item-view.tsx:76-114` — per-row layout + click-seek (must keep working unchanged).
+- `frontend/components/sheet-view.tsx:6` — single import site that selects the hook.
+- `frontend/components/sheet-view.tsx:76-114` — per-row layout + click-seek (must keep working unchanged).
 - `backend/app/uploads.py:51-65` — existing ffmpeg pass at upload time; where server peaks would slot in as a later follow-up.
 - `ravel/docs/design-v1.md:102` — master track spec (thin waveform + single transport).
 - T0011 — introduced the playback layer; its "don't pull in wavesurfer.js" note is the decision this task leaves standing.

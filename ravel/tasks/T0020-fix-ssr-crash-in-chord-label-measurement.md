@@ -7,7 +7,7 @@ dependencies: []
 
 # Scope
 
-- The media page server-renders `ItemView` with chord data, so `buildChordRows` runs during SSR. Its label-fit check measured text via `document.createElement("canvas")`, crashing every server render with `ReferenceError: document is not defined` — the page returned `__next_error__` HTML and only recovered on the client.
+- The media page server-renders `SheetView` with chord data, so `buildChordRows` runs during SSR. Its label-fit check measured text via `document.createElement("canvas")`, crashing every server render with `ReferenceError: document is not defined` — the page returned `__next_error__` HTML and only recovered on the client.
 - Replace DOM text measurement with a deterministic per-character width estimate that runs identically on server and client.
 
 # Acceptance

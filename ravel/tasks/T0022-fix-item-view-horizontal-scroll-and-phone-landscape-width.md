@@ -1,6 +1,6 @@
 ---
 id: T0022
-title: Fix item view horizontal scroll and phone landscape width
+title: Fix sheet view horizontal scroll and phone landscape width
 status: done
 dependencies:
   - T0014
@@ -23,6 +23,6 @@ dependencies:
 # Implementation Notes
 
 - `frontend/app/media/[id]/page.tsx:39`: the wrapper `<div className="flex flex-col items-center gap-8 overflow-x-auto max-w-full">` centered an over-wide flex item, which clipped the left-side overflow (classic flexbox `items-center` + overflow bug). Switched to `items-start` so the leading edge stays in scroll range; centering is delegated to the child via `mx-auto`.
-- `frontend/components/item-view.tsx:51`: root container changed from `flex flex-col gap-6` to `mx-auto flex w-max flex-col gap-6`. `w-max` sizes the flex item to its content; `mx-auto` re-centers it when it fits the viewport and collapses to `0` (left-aligned, fully scrollable) when it overflows. Also moved `--px-per-second`'s 32 tier from `sm:` to `lg:`.
+- `frontend/components/sheet-view.tsx:51`: root container changed from `flex flex-col gap-6` to `mx-auto flex w-max flex-col gap-6`. `w-max` sizes the flex item to its content; `mx-auto` re-centers it when it fits the viewport and collapses to `0` (left-aligned, fully scrollable) when it overflows. Also moved `--px-per-second`'s 32 tier from `sm:` to `lg:`.
 - `frontend/lib/layout.ts` and `frontend/hooks/use-css-var.ts` need no changes — `useCssVar` already re-reads on resize, so the breakpoint shift is picked up automatically on viewport transitions.
 - `T0014` introduced the regression; this task depends on it for context only (no code dependency).

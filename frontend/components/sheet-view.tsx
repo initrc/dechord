@@ -14,7 +14,7 @@ import { MasterTrackRow } from "@/components/master-track"
 import { TimelineAxis } from "@/components/timeline-axis"
 import { Button } from "@/components/ui/button"
 
-export function ItemView({
+export function SheetView({
   mediaId,
   duration,
   chords,

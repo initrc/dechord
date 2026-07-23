@@ -23,5 +23,5 @@ dependencies: []
 # Implementation Notes
 
 - `frontend/components/master-track.tsx`: bar drawing uses `ctx.roundRect` with `globalAlpha` driven by peak amplitude. Gaps at row edges via `x = i * stepWidth + gapWidth` and `numBars = floor((width - gapWidth) / stepWidth)`.
-- `frontend/components/item-view.tsx`: new `<div className="border border-primary/10">` wraps chord + master tracks only; parent flex column has `overflow-x-hidden`.
+- `frontend/components/sheet-view.tsx`: new `<div className="border border-primary/10">` wraps chord + master tracks only; parent flex column has `overflow-x-hidden`.
 - `frontend/components/chord-track.tsx`: segment `borderClass` simplified to `"border-b"` — outer frame handled by container div.
