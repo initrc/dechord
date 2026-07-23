@@ -79,11 +79,10 @@ export function buildChordRows(
   })
 
   // Pass 2: prefer the first segment if it fits the label; else use the widest.
-  const measureLabelWidth = createLabelWidthMeasurer()
   for (const segs of segmentsByChord) {
     if (segs.length === 0) continue
     let pick = segs[0]
-    if (!pick.isSilence && labelFits(pick, pxPerSecond, measureLabelWidth)) {
+    if (!pick.isSilence && labelFits(pick, pxPerSecond)) {
       pick.showLabel = true
       continue
     }
@@ -103,33 +102,26 @@ export function buildChordRows(
 // Match the `px-0.5` label padding (0.125rem each side) used in JSX.
 const LABEL_PADDING_PX = 4
 
-function labelFits(
-  seg: ChordRowSegment,
-  pxPerSecond: number,
-  measureLabelWidth: (label: string) => number,
-): boolean {
+function labelFits(seg: ChordRowSegment, pxPerSecond: number): boolean {
   if (!seg.label) return false
   const segWidth = secondsToPx(seg.end - seg.start, pxPerSecond)
-  return measureLabelWidth(seg.label) + LABEL_PADDING_PX <= segWidth
+  return estimateLabelWidth(seg.label) + LABEL_PADDING_PX <= segWidth
 }
 
-// Canvas-based text width measurement, cached by label string. Chord labels
-// come from a small vocabulary so the cache stays tiny. Lazily created on
-// first call so SSR does not touch the DOM. Returns width in CSS pixels.
-function createLabelWidthMeasurer(): (label: string) => number {
-  const cache = new Map<string, number>()
-  let ctx: CanvasRenderingContext2D | null = null
-  return (label: string) => {
-    const hit = cache.get(label)
-    if (hit !== undefined) return hit
-    if (ctx === null) {
-      const canvas = document.createElement("canvas")
-      ctx = canvas.getContext("2d")
-    }
-    const width = ctx ? ctx.measureText(label).width : 0
-    cache.set(label, width)
-    return width
+// Estimated text width of a chord label at text-xs (12px Inter).
+// buildChordRows runs during SSR too, where no DOM exists, so the canvas
+// measureText API is unavailable — an estimate keeps the server and client
+// renders identical. Per-character widths are biased slightly above the
+// measured values, so a label that "fits" really fits.
+function estimateLabelWidth(label: string): number {
+  let width = 0
+  for (const ch of label) {
+    if (ch >= "A" && ch <= "Z") width += 9
+    else if (ch === "m" || ch === "w") width += 9.3
+    else if (ch === "i" || ch === "j" || ch === "l") width += 3
+    else width += 7.5 // digits, "#", flat, other lowercase
   }
+  return width
 }
 
 export function ChordTrackRow({
