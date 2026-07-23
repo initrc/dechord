@@ -1,7 +1,6 @@
 "use client"
 
 import { useRef } from "react"
-import { tickInterval } from "@/lib/timeline"
 import { useCssVar } from "@/hooks/use-css-var"
 
 const DEFAULT_ROW_SECONDS = 30
@@ -13,24 +12,15 @@ export type TimeRow = {
   index: number
   rowStart: number
   rowEnd: number
-  ticks: number[]
 }
 
 export function buildTimeRows(duration: number, rowSeconds: number): TimeRow[] {
-  const interval = tickInterval()
   const rowCount = Math.max(1, Math.ceil(duration / rowSeconds))
   const rows: TimeRow[] = []
   for (let r = 0; r < rowCount; r++) {
     const rowStart = r * rowSeconds
     const rowEnd = Math.min((r + 1) * rowSeconds, duration)
-    const ticks: number[] = []
-    for (let t = rowStart; t <= rowEnd; t += interval) {
-      ticks.push(t)
-    }
-    if (rowEnd !== ticks.at(-1)) {
-      ticks.push(rowEnd)
-    }
-    rows.push({ index: r, rowStart, rowEnd, ticks })
+    rows.push({ index: r, rowStart, rowEnd })
   }
   return rows
 }

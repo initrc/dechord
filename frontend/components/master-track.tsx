@@ -79,10 +79,13 @@ export function MasterTrackRow({
   }, [peaks, peaksPerSecond, width, row.rowStart, row.rowEnd, pxPerSecond, resolvedTheme])
 
   return (
-    <canvas
-      ref={canvasRef}
-      className="block"
-      style={{ width, height: MASTER_HEIGHT }}
-    />
+    <div className="relative" style={{ width, height: MASTER_HEIGHT }}>
+      <canvas
+        ref={canvasRef}
+        className="block"
+        style={{ width, height: MASTER_HEIGHT }}
+      />
+      <div className="pointer-events-none absolute inset-x-0 top-1/2 h-px -translate-y-1/2 bg-primary/10" />
+    </div>
   )
 }

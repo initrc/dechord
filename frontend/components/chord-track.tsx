@@ -132,10 +132,16 @@ export function ChordTrackRow({
   pxPerSecond: number
 }) {
   const width = secondsToPx(row.rowEnd - row.rowStart, pxPerSecond)
+  const segWidths = row.segments.map((seg, j) =>
+    j === row.segments.length - 1
+      ? null
+      : secondsToPx(seg.end - seg.start, pxPerSecond),
+  )
+  const consumed = segWidths.reduce<number>((sum, w) => sum + (w ?? 0), 0)
   return (
     <div className="flex" style={{ width, height: CHORD_HEIGHT }}>
       {row.segments.map((seg, j) => {
-        const segWidth = secondsToPx(seg.end - seg.start, pxPerSecond)
+        const segWidth = segWidths[j] ?? (width - consumed)
         return (
           <div
             key={j}

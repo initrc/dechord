@@ -11,7 +11,7 @@ import { formatTime, secondsToPx } from "@/lib/timeline"
 import type { DisplayChord } from "@/lib/chords"
 import { buildChordRows, ChordTrackRow } from "@/components/chord-track"
 import { MasterTrackRow } from "@/components/master-track"
-import { TimelineAxis } from "@/components/timeline-axis"
+import { RowStartLabel } from "@/components/row-start-label"
 import { Button } from "@/components/ui/button"
 
 export function SheetView({
@@ -69,7 +69,7 @@ export function SheetView({
         <p className="text-sm text-muted-foreground">No chords detected.</p>
       )}
 
-      <div className="flex flex-col gap-2 overflow-x-hidden">
+      <div className="flex flex-col gap-6 overflow-x-hidden">
         {rows.map((row, i) => {
           const width = secondsToPx(row.rowEnd - row.rowStart, pxPerSecond)
           const cursorActive =
@@ -77,35 +77,33 @@ export function SheetView({
           return (
             <div
               key={row.index}
-              className="relative shrink-0"
-              style={{ width }}
+              className="relative flex shrink-0 flex-col border border-primary/10"
+              style={{ width: width + 2 }}
               onClick={(e) => {
                 const rect = e.currentTarget.getBoundingClientRect()
                 const x = e.clientX - rect.left
                 player.seek(row.rowStart + x / pxPerSecond)
               }}
             >
-              <div className="relative border border-primary/10">
-                {hasChords && (
-                  <ChordTrackRow row={chordRows[i]} pxPerSecond={pxPerSecond} />
-                )}
-                <MasterTrackRow
-                  row={row}
-                  peaks={peaks}
-                  peaksPerSecond={peaksPerSecond}
-                  pxPerSecond={pxPerSecond}
+              {hasChords && (
+                <ChordTrackRow row={chordRows[i]} pxPerSecond={pxPerSecond} />
+              )}
+              <MasterTrackRow
+                row={row}
+                peaks={peaks}
+                peaksPerSecond={peaksPerSecond}
+                pxPerSecond={pxPerSecond}
+              />
+              {cursorActive && (
+                <div
+                  className="pointer-events-none absolute inset-y-0 z-10 bg-primary"
+                  style={{
+                    left: secondsToPx(player.currentTime - row.rowStart, pxPerSecond) - 1,
+                    width: 2,
+                  }}
                 />
-                {cursorActive && (
-                  <div
-                    className="pointer-events-none absolute inset-y-0 z-10 bg-primary"
-                    style={{
-                      left: secondsToPx(player.currentTime - row.rowStart, pxPerSecond) - 2,
-                      width: 2,
-                    }}
-                  />
-                )}
-              </div>
-              <TimelineAxis row={row} width={width} pxPerSecond={pxPerSecond} />
+              )}
+              <RowStartLabel row={row} />
             </div>
           )
         })}
