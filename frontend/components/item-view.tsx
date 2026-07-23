@@ -48,7 +48,7 @@ export function ItemView({
   return (
     <div
       ref={containerRef}
-      className="[--row-seconds:15] sm:[--row-seconds:30] [--px-per-second:22] sm:[--px-per-second:32] flex flex-col gap-6"
+      className="[--row-seconds:15] sm:[--row-seconds:30] [--px-per-second:22] lg:[--px-per-second:32] mx-auto flex w-max flex-col gap-6"
     >
       <div className="flex items-center gap-3">
         <Button

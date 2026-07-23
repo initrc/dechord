@@ -36,7 +36,7 @@ export default async function Page({
 
   return (
     <div className="flex justify-center px-2 sm:px-6 py-6">
-      <div className="flex flex-col items-center gap-8 overflow-x-auto max-w-full">
+      <div className="flex flex-col items-start gap-8 overflow-x-auto max-w-full">
         <div className="flex w-full items-center gap-2">
           <Link href="/" className="text-muted-foreground hover:text-foreground">
             <ArrowLeft className="size-5" />
