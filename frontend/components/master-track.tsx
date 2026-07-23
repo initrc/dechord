@@ -45,33 +45,43 @@ export function MasterTrackRow({
     const cssVar = getComputedStyle(canvas).getPropertyValue("--chart-2").trim()
     ctx.fillStyle = cssVar || "currentColor"
 
-    const secondsPerPx = 1 / pxPerSecond
-    const peaksPerPx = Math.max(1, Math.floor(secondsPerPx * peaksPerSecond))
+    const gapWidth = 1
+    const barWidth = 2
+    const stepWidth = gapWidth + barWidth  // 3px per bar, gap first, then gap at the end of the row
+    const numBars = Math.max(1, Math.floor((width - gapWidth) / stepWidth))
+    const secondsPerBar = (row.rowEnd - row.rowStart) / numBars
+    const peaksPerBar = Math.max(1, Math.floor(secondsPerBar * peaksPerSecond))
     const mid = MASTER_HEIGHT / 2
-    // The peaks array may be slightly shorter than `duration` (encoder
-    // quantization, truncation). Stop where buckets actually end so we never
-    // read past peaks.length in the inner loop.
-    const safeWidth = Math.min(width, peaks.length / peaksPerPx)
 
-    for (let x = 0; x < safeWidth; x++) {
+    for (let i = 0; i < numBars; i++) {
       const startBucket = Math.floor(
-        (row.rowStart + x * secondsPerPx) * peaksPerSecond,
+        (row.rowStart + i * secondsPerBar) * peaksPerSecond,
       )
-      const endBucket = Math.min(startBucket + peaksPerPx, peaks.length)
+      // The peaks array may be slightly shorter than `duration` (encoder
+      // quantization, truncation). Stop when we run past the array so we
+      // never read past peaks.length in the inner loop.
+      if (startBucket >= peaks.length) break
+      const endBucket = Math.min(startBucket + peaksPerBar, peaks.length)
       let peak = 0
-      for (let i = startBucket; i < endBucket; i++) {
-        const v = peaks[i] as number
+      for (let j = startBucket; j < endBucket; j++) {
+        const v = peaks[j] as number
         if (v > peak) peak = v
       }
-      const h = Math.max(1, peak * MASTER_HEIGHT * 0.95)
-      ctx.fillRect(x, mid - h / 2, 1, h)
+      const h = Math.max(barWidth, peak * MASTER_HEIGHT * 0.95)
+      const x = i * stepWidth + gapWidth
+      const y = mid - h / 2
+      const radius = Math.min(1, h / 2)
+      ctx.globalAlpha = 0.3 + peak * 0.7
+      ctx.beginPath()
+      ctx.roundRect(x, y, barWidth, h, radius)
+      ctx.fill()
     }
-  }, [peaks, peaksPerSecond, width, row.rowStart, pxPerSecond, resolvedTheme])
+  }, [peaks, peaksPerSecond, width, row.rowStart, row.rowEnd, pxPerSecond, resolvedTheme])
 
   return (
     <canvas
       ref={canvasRef}
-      className="block border border-primary/10"
+      className="block"
       style={{ width, height: MASTER_HEIGHT }}
     />
   )

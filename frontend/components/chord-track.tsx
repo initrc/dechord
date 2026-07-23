@@ -136,11 +136,10 @@ export function ChordTrackRow({
     <div className="flex" style={{ width, height: CHORD_HEIGHT }}>
       {row.segments.map((seg, j) => {
         const segWidth = secondsToPx(seg.end - seg.start, pxPerSecond)
-        const borderClass = j === 0 ? "border-l border-r border-t" : "border-r border-t"
         return (
           <div
             key={j}
-            className={`flex shrink-0 items-center justify-center overflow-hidden ${borderClass} ${CHORD_BORDER_COLOR} text-xs ${segmentColor(seg)}`}
+            className={`flex shrink-0 items-center justify-center overflow-hidden border-b ${CHORD_BORDER_COLOR} text-xs ${segmentColor(seg)}`}
             style={{ width: segWidth }}
             title={seg.label}
           >

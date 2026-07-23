@@ -74,7 +74,7 @@ export function ItemView({
         <p className="text-sm text-muted-foreground">No chords detected.</p>
       )}
 
-      <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-2 overflow-x-hidden">
         {rows.map((row, i) => {
           const width = secondsToPx(row.rowEnd - row.rowStart, pxPerSecond)
           const cursorActive =
@@ -90,15 +90,17 @@ export function ItemView({
                 player.seek(row.rowStart + x / pxPerSecond)
               }}
             >
-              {hasChords && (
-                <ChordTrackRow row={chordRows[i]} pxPerSecond={pxPerSecond} />
-              )}
-              <MasterTrackRow
-                row={row}
-                peaks={peaks}
-                peaksPerSecond={peaksPerSecond}
-                pxPerSecond={pxPerSecond}
-              />
+              <div className="border border-primary/10">
+                {hasChords && (
+                  <ChordTrackRow row={chordRows[i]} pxPerSecond={pxPerSecond} />
+                )}
+                <MasterTrackRow
+                  row={row}
+                  peaks={peaks}
+                  peaksPerSecond={peaksPerSecond}
+                  pxPerSecond={pxPerSecond}
+                />
+              </div>
               <TimelineAxis row={row} width={width} pxPerSecond={pxPerSecond} />
               {cursorActive && (
                 <div
