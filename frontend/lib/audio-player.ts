@@ -70,6 +70,9 @@ export function useAudioPlayer(
       const audio = audioRef.current
       if (!audio) return
       audio.currentTime = Math.max(0, Math.min(time, duration))
+      // The rAF loop only runs while playing, so sync state here too — otherwise
+      // seeking while paused leaves the cursor frozen until playback resumes.
+      setCurrentTime(audio.currentTime)
     },
     [duration],
   )

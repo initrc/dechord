@@ -9,12 +9,8 @@ import { useRowSeconds, usePxPerSecond, buildTimeRows } from "@/lib/layout"
 import { useHotkey } from "@/hooks/use-hotkey"
 import { formatTime, secondsToPx } from "@/lib/timeline"
 import type { DisplayChord } from "@/lib/chords"
-import {
-  buildChordRows,
-  ChordTrackRow,
-  CHORD_HEIGHT,
-} from "@/components/chord-track"
-import { MasterTrackRow, MASTER_HEIGHT } from "@/components/master-track"
+import { buildChordRows, ChordTrackRow } from "@/components/chord-track"
+import { MasterTrackRow } from "@/components/master-track"
 import { TimelineAxis } from "@/components/timeline-axis"
 import { Button } from "@/components/ui/button"
 
@@ -43,7 +39,6 @@ export function ItemView({
     [chords, duration, rowSeconds, pxPerSecond],
   )
   const hasChords = chords.length > 0
-  const trackBlockHeight = hasChords ? CHORD_HEIGHT + MASTER_HEIGHT : MASTER_HEIGHT
 
   return (
     <div
@@ -90,7 +85,7 @@ export function ItemView({
                 player.seek(row.rowStart + x / pxPerSecond)
               }}
             >
-              <div className="border border-primary/10">
+              <div className="relative border border-primary/10">
                 {hasChords && (
                   <ChordTrackRow row={chordRows[i]} pxPerSecond={pxPerSecond} />
                 )}
@@ -100,18 +95,17 @@ export function ItemView({
                   peaksPerSecond={peaksPerSecond}
                   pxPerSecond={pxPerSecond}
                 />
+                {cursorActive && (
+                  <div
+                    className="pointer-events-none absolute inset-y-0 z-10 bg-primary"
+                    style={{
+                      left: secondsToPx(player.currentTime - row.rowStart, pxPerSecond) - 2,
+                      width: 2,
+                    }}
+                  />
+                )}
               </div>
               <TimelineAxis row={row} width={width} pxPerSecond={pxPerSecond} />
-              {cursorActive && (
-                <div
-                  className="pointer-events-none absolute top-0 z-10 bg-primary"
-                  style={{
-                    left: secondsToPx(player.currentTime - row.rowStart, pxPerSecond) - 2,
-                    height: trackBlockHeight,
-                    width: 2,
-                  }}
-                />
-              )}
             </div>
           )
         })}
