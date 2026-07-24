@@ -146,10 +146,14 @@ export function ChordTrackRow({
           <div
             key={j}
             className={`flex shrink-0 items-center justify-center overflow-hidden border-b ${CHORD_BORDER_COLOR} text-xs ${segmentColor(seg)}`}
-            style={{ width: segWidth }}
+            style={{ width: segWidth, containerType: "inline-size" }}
             title={seg.label}
           >
-            {seg.showLabel && <span className="px-0.5">{seg.label}</span>}
+            {seg.showLabel && (
+              <span className="text-[clamp(8px,72cqw,12px)] leading-none">
+                {seg.label}
+              </span>
+            )}
           </div>
         )
       })}
