@@ -10,7 +10,9 @@ export type AudioPlayer = {
   seek: (time: number) => void
 }
 
-// Streaming playback over an `HTMLAudioElement`. The browser decodes on demand.
+// Playback over an `HTMLAudioElement`. The source is resolved into a Blob
+// URL on mount (see effect below) so playback reads from in-memory bytes
+// rather than a live network stream.
 export function useAudioPlayer(
   mediaId: string,
   duration: number,
@@ -20,21 +22,52 @@ export function useAudioPlayer(
   const [isPlaying, setIsPlaying] = useState(false)
   const [currentTime, setCurrentTime] = useState(0)
 
+  // Download the entire source into a Blob once on mount, then point the
+  // `HTMLAudioElement` at the blob URL. A streaming `Audio(src)` reads bytes
+  // on demand from the network; on a slow link the buffered-ahead range
+  // underruns partway through a long track and `currentTime` freezes until
+  // more arrives (see `waiting`/`stalled`). Resolving the whole file into
+  // memory up front eliminates the network dependency during playback, the
+  // same guarantee the old `decodeAudioData` path had. Peaks (and therefore
+  // the waveform) come from the separate `/audio/peaks` endpoint, so they
+  // still render instantly — only the play button waits on this fetch.
   useEffect(() => {
-    const audio = new Audio(`/api/media/${mediaId}/audio/source`)
-    audio.preload = "auto"
-    audioRef.current = audio
+    let cancelled = false
+    const abort = new AbortController()
+    let url: string | null = null
+    let audio: HTMLAudioElement | null = null
     const handlers: Array<[keyof HTMLMediaElementEventMap, () => void]> = [
-      ["canplay", () => setLoading(false)],
       ["playing", () => setIsPlaying(true)],
       ["pause", () => setIsPlaying(false)],
       ["ended", () => { setIsPlaying(false); setCurrentTime(duration) }],
-      ["error", () => { console.error("audio load failed", audio.error); setLoading(false) }],
+      ["error", () => { console.error("audio load failed", audio?.error); setLoading(false) }],
     ]
-    for (const [ev, fn] of handlers) audio.addEventListener(ev, fn)
+    void (async () => {
+      try {
+        const res = await fetch(`/api/media/${mediaId}/audio/source`, { signal: abort.signal })
+        if (!res.ok) throw new Error(`audio fetch failed: ${res.status}`)
+        const blob = await res.blob()
+        if (cancelled) return
+        url = URL.createObjectURL(blob)
+        audio = new Audio(url)
+        audio.preload = "auto"
+        audioRef.current = audio
+        for (const [ev, fn] of handlers) audio.addEventListener(ev, fn)
+        setLoading(false)
+      } catch (e) {
+        if (cancelled || (e instanceof DOMException && e.name === "AbortError")) return
+        console.error("audio load failed", e)
+        setLoading(false)
+      }
+    })()
     return () => {
-      audio.pause()
-      for (const [ev, fn] of handlers) audio.removeEventListener(ev, fn)
+      cancelled = true
+      abort.abort()
+      if (audio) {
+        audio.pause()
+        for (const [ev, fn] of handlers) audio.removeEventListener(ev, fn)
+      }
+      if (url) URL.revokeObjectURL(url)
       audioRef.current = null
     }
   }, [mediaId, duration])
